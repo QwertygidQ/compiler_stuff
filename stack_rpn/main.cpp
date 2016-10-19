@@ -19,11 +19,11 @@ struct Token
     const int value;
 };
 
-void tokenize(std::vector<Token> *tokens, std::string expr);
-int interpret(std::vector<Token> *tokens);
+void tokenize(std::vector<Token> *tokens, const std::string expr);
+int interpret(const std::vector<Token> *tokens);
 
 template <class Func>
-void apply_op_to_stack(std::stack<int> *stack, Func f);
+void apply_op_to_stack(std::stack<int> *stack, const Func f);
 
 int main()
 {
@@ -40,7 +40,7 @@ int main()
     return EXIT_SUCCESS;
 }
 
-void tokenize(std::vector<Token> *tokens, std::string expr)
+void tokenize(std::vector<Token> *tokens, const std::string expr)
 {
     for (size_t i = 0; i < expr.size(); i++)
         switch (expr[i])
@@ -90,7 +90,7 @@ void tokenize(std::vector<Token> *tokens, std::string expr)
         }
 }
 
-int interpret(std::vector<Token> *tokens)
+int interpret(const std::vector<Token> *tokens)
 {
     std::stack<int> stack;
 
@@ -121,7 +121,7 @@ int interpret(std::vector<Token> *tokens)
 }
 
 template <class Func>
-void apply_op_to_stack(std::stack<int> *stack, Func f)
+void apply_op_to_stack(std::stack<int> *stack, const Func f)
 {
     int top = stack -> top();
     stack -> pop();
