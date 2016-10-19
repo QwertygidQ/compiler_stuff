@@ -1,8 +1,9 @@
+#include <cmath>
+#include <cstdlib>
+#include <functional>
 #include <iostream>
 #include <stack>
 #include <vector>
-#include <functional>
-#include <cstdlib>
 
 enum class Type
 {
@@ -21,6 +22,7 @@ struct Token
 
 void tokenize(std::vector<Token> *tokens, const std::string expr);
 int interpret(const std::vector<Token> *tokens);
+void error(const std::string message);
 
 template <class Func>
 void apply_op_to_stack(std::stack<int> *stack, const Func f);
@@ -83,10 +85,7 @@ void tokenize(std::vector<Token> *tokens, const std::string expr)
                 i--;
             }
             else
-            {
-                std::cerr << "Unknown character! Quitting..." << std::endl;
-                exit(EXIT_FAILURE);
-            }
+				error("Unknown character! Quitting...");
         }
 }
 
@@ -107,23 +106,36 @@ int interpret(const std::vector<Token> *tokens)
             apply_op_to_stack(&stack, std::multiplies<int>());
             break;
         case Type::Div:
-            apply_op_to_stack(&stack, std::divides<int>());
+            apply_op_to_stack(&stack, std::divides<float>());
             break;
         case Type::Number:
             stack.push(token.value);
             break;
         default:
-            std::cerr << "Unknown command! Quitting..." << std::endl;
-            exit(EXIT_FAILURE);
+            error("Unknown command! Quitting...");
         }
 
     return stack.top();
 }
 
+void error(const std::string message)
+{
+	std::cerr << message << std::endl;
+	exit(EXIT_FAILURE);
+}
+
 template <class Func>
 void apply_op_to_stack(std::stack<int> *stack, const Func f)
 {
+	if (stack -> size() < 2)
+		error("Stack is too small to perform an operation on! Quitting...");
+
     int top = stack -> top();
     stack -> pop();
-    stack -> top() = f(stack -> top(), top);
+
+    float temp = f(stack -> top(), top);
+    if (std::isinf(temp))
+        error("Division by zero attempt! Quitting...");
+
+    stack -> top() = temp;
 }
