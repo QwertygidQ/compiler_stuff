@@ -85,7 +85,7 @@ void tokenize(std::vector<Token> *tokens, const std::string expr)
                 i--;
             }
             else
-				error("Unknown character! Quitting...");
+                error("Unknown character! Quitting...");
         }
 }
 
@@ -127,8 +127,8 @@ void error(const std::string message)
 template <class Func>
 void apply_op_to_stack(std::stack<int> *stack, const Func f)
 {
-	if (stack -> size() < 2)
-		error("Stack is too small to perform an operation on! Quitting...");
+    if (stack -> size() < 2)
+        error("Stack is too small to perform an operation on! Quitting...");
 
     int top = stack -> top();
     stack -> pop();
