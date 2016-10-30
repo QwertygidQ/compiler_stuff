@@ -23,9 +23,11 @@ void error(const char* msg);
 
 int main()
 {
-    double a = 0.0, b = 0.0, c = 0.0;
+    printf("\nQuadratic equation solver\nQwertygid, 2016\n\n");
 
     printf("ax^2 + bx + c = 0\n");
+    
+    double a = 0.0, b = 0.0, c = 0.0;
 
     get_input("a = ", &a);
     get_input("b = ", &b);
