@@ -1,8 +1,8 @@
-#include <stdio.h>
-#include <math.h>
 #include <float.h>
-#include <stdlib.h>
+#include <math.h>
 #include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 enum solution_type
 {
@@ -15,6 +15,7 @@ struct solution
     double x1, x2;
 };
 
+void get_input(const char* msg, double *var);
 bool is_not_zero(const double a);
 struct solution* solve_quad_equation(const double a, const double b, const double c);
 const double solve_linear_equation(const double a, const double b); // ax+b = 0, a != 0
@@ -26,14 +27,9 @@ int main()
 
     printf("ax^2 + bx + c = 0\n");
 
-    printf("a = ");
-    scanf("%lf", &a);
-
-    printf("b = ");
-    scanf("%lf", &b);
-
-    printf("c = ");
-    scanf("%lf", &c);
+    get_input("a = ", &a);
+    get_input("b = ", &b);
+    get_input("c = ", &c);
 
     struct solution *s = solve_quad_equation(a, b, c);
     if (s == NULL)
@@ -55,12 +51,28 @@ int main()
         printf("Infinitely many solutions found\n");
         break;
     default:
-        error("Undefined solution type!\n");
+        error("Undefined solution type\n");
     }
     
     free(s);
 
     return EXIT_SUCCESS;
+}
+
+void get_input(const char* msg, double *var)
+{
+    const int INPUT_THRESHOLD = 5;
+    
+    for (int i = 0; i < INPUT_THRESHOLD; i++)
+    {
+        printf(msg);
+        if (scanf("%lf", var) != 1)
+            scanf("%*s");
+        else
+            return;
+    }
+    
+    error("Too many tries\n");
 }
 
 bool is_not_zero(const double a)
@@ -133,7 +145,7 @@ struct solution* solve_quad_equation(const double a, const double b, const doubl
 const double solve_linear_equation(const double a, const double b) // ax+b = 0, a != 0
 {
     if (a == 0)
-        error("a == 0 in solve_linear_equation!\n");
+        error("a == 0 in solve_linear_equation()\n");
     
     return -b / a;
         
