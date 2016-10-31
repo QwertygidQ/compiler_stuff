@@ -3,25 +3,8 @@
 #include <iostream>
 #include <sstream>
 #include <stack>
-#include <vector>
 
-enum class Type
-{
-    Number, Plus, Minus, Mul, Div
-};
-
-struct Token
-{
-    Token(const Type _type, const double _value = 0.0) :
-        type(_type), value(_value)
-    {}
-
-    const Type type;
-    const double value;
-};
-
-void tokenize(std::vector<Token> *tokens, const std::string expr);
-double interpret(const std::vector<Token> *tokens);
+double interpret(const std::string expr);
 void error(const std::string message);
 
 template <class Func>
@@ -29,41 +12,44 @@ void apply_op_to_stack(std::stack<double> *stack, const Func f);
 
 int main()
 {
+    std::cout << std::endl << "RPN stack machine emulator" <<
+        std::endl << "Qwertygid, 2016" << std::endl << std::endl;
+        
     std::cout << "Enter a RPN expression: " << std::endl;
 
     std::string expr;
     std::getline(std::cin, expr);
 
-    std::vector<Token> vec;
-    tokenize(&vec, expr);
-
-    std::cout << "Result: " << interpret(&vec) << std::endl;
+    std::cout << "Result: " << interpret(expr) << std::endl;
 
     return EXIT_SUCCESS;
 }
 
-void tokenize(std::vector<Token> *tokens, const std::string expr)
+double interpret(const std::string expr)
 {
     std::stringstream ss;
     ss.str(expr);
     
-    std::string temp;
-    while (ss >> temp)
+    std::stack<double> stack;
+    
+    std::string next_str;
+    while (ss >> next_str)
     {
-        if (temp == "+")
-            tokens -> push_back(Token(Type::Plus));
-        else if (temp == "-")
-            tokens -> push_back(Token(Type::Minus));
-        else if (temp == "*")
-            tokens -> push_back(Token(Type::Mul));
-        else if (temp == "/")
-            tokens -> push_back(Token(Type::Div));
+        if (next_str == "+")
+            apply_op_to_stack(&stack, std::plus<double>());
+        else if (next_str == "-")
+            apply_op_to_stack(&stack, std::minus<double>());
+        else if (next_str == "*")
+            apply_op_to_stack(&stack, std::multiplies<double>());
+        else if (next_str == "/")
+            apply_op_to_stack(&stack, std::divides<double>());
         else
         {
             double num;
             try
             {
-                num = std::stod(temp);
+                num = std::stod(next_str);
+                stack.push(num);
             }
             catch (const std::invalid_argument&)
             {
@@ -73,37 +59,11 @@ void tokenize(std::vector<Token> *tokens, const std::string expr)
             {
                 error("Number value is out of range! Quitting...");
             }
-            
-            tokens -> push_back(Token(Type::Number, num));
         }
     }
-}
-
-double interpret(const std::vector<Token> *tokens)
-{
-    std::stack<double> stack;
-
-    for (Token token : *tokens)
-        switch (token.type)
-        {
-        case Type::Plus:
-            apply_op_to_stack(&stack, std::plus<double>());
-            break;
-        case Type::Minus:
-            apply_op_to_stack(&stack, std::minus<double>());
-            break;
-        case Type::Mul:
-            apply_op_to_stack(&stack, std::multiplies<double>());
-            break;
-        case Type::Div:
-            apply_op_to_stack(&stack, std::divides<double>());
-            break;
-        case Type::Number:
-            stack.push(token.value);
-            break;
-        default:
-            error("Unknown command! Quitting...");
-        }
+    
+    if (stack.empty())
+        error("Stack is empty! Quitting...");
 
     return stack.top();
 }
