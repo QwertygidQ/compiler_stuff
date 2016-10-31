@@ -5,7 +5,7 @@ Big-endian
 Word size - 4 bytes = 32 bits
 
 Stack - std::stack<uint32_t>
-IP - size_t
+Instruction pointer (IP) - size_t
 Program memory (PM) - uint32_t[1024] (1024 instructions max) (4 kiB = 4096 bytes)
 
 OPs:
@@ -17,13 +17,13 @@ OR     (0x00000004) - pop Y, pop X, push X OR Y
 XOR    (0x00000005) - pop Y, pop X, push X XOR Y
 NOT    (0x00000006) - pop X, push NOT X
 JMP    (0x00000007) - pop X, goto X
-JZ     (0x00000008) - pop Y, pop X, if X = 0, goto Y
-JNZ    (0x00000009) - pop Y, pop X, if X != 0, goto Y
-PUSH   (0x0000000A) - push next PM instruction onto the stack
+JZ     (0x00000008) - pop Y, pop X, if X = 0, set IP to Y
+JNZ    (0x00000009) - pop Y, pop X, if X != 0, set IP to Y
+PUSH   (0x0000000A) - push next PM instruction and skip it
 POP    (0x0000000B) - remove stack top
-PUSHIP (0x0000000C) - push IP onto the stack
+PUSHIP (0x0000000C) - push IP
 POPIP  (0x0000000D) - pop stack top into IP
 PUSHPM (0x0000000E) - pop X, push PM[X]
 POPPM  (0x0000000F) - pop Y, pop X, write Y to PM[X]
-INPUT  (0x00000010) - push word of input onto the stack
+INPUT  (0x00000010) - push word of input
 PEEK   (0x00000011) - output stack top
