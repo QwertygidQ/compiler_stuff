@@ -15,11 +15,11 @@ struct solution
     double x1, x2;
 };
 
-void get_input(const char* msg, double *var);
+void get_input(const char *msg, double *var);
 bool is_not_zero(const double a);
 struct solution* solve_quad_equation(const double a, const double b, const double c);
 const double solve_linear_equation(const double a, const double b); // ax+b = 0, a != 0
-void error(const char* msg);
+void error(const char *msg);
 
 int main()
 {
@@ -61,7 +61,7 @@ int main()
     return EXIT_SUCCESS;
 }
 
-void get_input(const char* msg, double *var)
+void get_input(const char *msg, double *var)
 {
     const int INPUT_THRESHOLD = 5;
     
@@ -153,7 +153,7 @@ const double solve_linear_equation(const double a, const double b) // ax+b = 0, 
         
 }
 
-void error(const char* msg)
+void error(const char *msg)
 {
     fprintf(stderr, msg);
     exit(EXIT_FAILURE);
