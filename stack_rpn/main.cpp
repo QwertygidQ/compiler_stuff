@@ -1,7 +1,7 @@
 #include <cmath>
 #include <cstdlib>
-#include <functional>
 #include <iostream>
+#include <sstream>
 #include <stack>
 #include <vector>
 
@@ -12,20 +12,20 @@ enum class Type
 
 struct Token
 {
-    Token(const Type _type, const int _value = 0) :
+    Token(const Type _type, const double _value = 0.0) :
         type(_type), value(_value)
     {}
 
     const Type type;
-    const int value;
+    const double value;
 };
 
 void tokenize(std::vector<Token> *tokens, const std::string expr);
-int interpret(const std::vector<Token> *tokens);
+double interpret(const std::vector<Token> *tokens);
 void error(const std::string message);
 
 template <class Func>
-void apply_op_to_stack(std::stack<int> *stack, const Func f);
+void apply_op_to_stack(std::stack<double> *stack, const Func f);
 
 int main()
 {
@@ -44,69 +44,59 @@ int main()
 
 void tokenize(std::vector<Token> *tokens, const std::string expr)
 {
-    for (size_t i = 0; i < expr.size(); i++)
-        switch (expr[i])
-        {
-        case '+':
+    std::stringstream ss;
+    ss.str(expr);
+    
+    std::string temp;
+    while (ss >> temp)
+    {
+        if (temp == "+")
             tokens -> push_back(Token(Type::Plus));
-            break;
-        case '-':
+        else if (temp == "-")
             tokens -> push_back(Token(Type::Minus));
-            break;
-        case '*':
+        else if (temp == "*")
             tokens -> push_back(Token(Type::Mul));
-            break;
-        case '/':
+        else if (temp == "/")
             tokens -> push_back(Token(Type::Div));
-            break;
-        default:
-            if (isdigit(expr[i]))
+        else
+        {
+            double num;
+            try
             {
-                int num = 0;
-
-                size_t j = i;
-                while (isdigit(expr[j]))
-                {
-                    num *= 10;
-                    num += expr[j] - '0';
-
-                    j++;
-                }
-
-                tokens -> push_back(Token(Type::Number, num));
-
-                i = j - 1;
+                num = std::stod(temp);
             }
-            else if (isspace(expr[i]))
+            catch (const std::invalid_argument&)
             {
-                while (isspace(expr[i]))
-                    i++;
-
-                i--;
-            }
-            else
                 error("Unknown character! Quitting...");
+            }
+            catch (const std::out_of_range&)
+            {
+                error("Number value is out of range! Quitting...");
+            }
+            
+            tokens -> push_back(Token(Type::Number, num));
         }
+    }
 }
 
-int interpret(const std::vector<Token> *tokens)
+double interpret(const std::vector<Token> *tokens)
 {
-    std::stack<int> stack;
+    std::stack<double> stack;
 
     for (Token token : *tokens)
         switch (token.type)
         {
         case Type::Plus:
-            apply_op_to_stack(&stack, std::plus<int>());
+            apply_op_to_stack(&stack, std::plus<double>());
             break;
         case Type::Minus:
-            apply_op_to_stack(&stack, std::minus<int>());
+            apply_op_to_stack(&stack, std::minus<double>());
             break;
         case Type::Mul:
-            apply_op_to_stack(&stack, std::multiplies<int>());
+            apply_op_to_stack(&stack, std::multiplies<double>());
             break;
         case Type::Div:
-            apply_op_to_stack(&stack, std::divides<float>());
+            apply_op_to_stack(&stack, std::divides<double>());
             break;
         case Type::Number:
             stack.push(token.value);
@@ -125,15 +115,15 @@ void error(const std::string message)
 }
 
 template <class Func>
-void apply_op_to_stack(std::stack<int> *stack, const Func f)
+void apply_op_to_stack(std::stack<double> *stack, const Func f)
 {
     if (stack -> size() < 2)
         error("Stack is too small to perform an operation on! Quitting...");
 
-    int top = stack -> top();
+    double top = stack -> top();
     stack -> pop();
 
-    float temp = f(stack -> top(), top);
+    double temp = f(stack -> top(), top);
     if (std::isinf(temp))
         error("Division by zero attempt! Quitting...");
 
