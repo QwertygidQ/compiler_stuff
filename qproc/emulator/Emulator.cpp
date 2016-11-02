@@ -1,29 +1,26 @@
 #include "Emulator.hpp"
 
+#include <climits>
 #include <fstream>
 #include <iostream>
 
-Emulator::Emulator(const std::string filename)
-{    
+Emulator::Emulator(std::string filename)
+{
     std::ifstream file;
     file.open(filename, std::ios::binary | std::ios::ate);
     if (!file.is_open())
-        error("Could not open the file");
+        error("Could not open the ROM");
     
     std::streampos fsize = file.tellg();
-    if (fsize % sizeof(int32_t) != 0 || fsize > PM_SIZE * sizeof(int32_t))
+    if (fsize > PM_SIZE * sizeof(uint8_t))
         error("Corrupt ROM");
     
     file.seekg(0);
     
-    size_t PM_cell = 0;
+    size_t PM_Cell = 0;
     while (file.tellg() != fsize)
-    {
-        file.read(reinterpret_cast<char*>(&PM[PM_cell]), sizeof(int32_t));
-        swap_endianness(&PM[PM_cell]);
-        PM_cell++;
-    }
-
+        file.read(reinterpret_cast<char*>(&PM[PM_Cell++]), sizeof(uint8_t));
+    
     file.close();
 }
 
@@ -43,141 +40,154 @@ int32_t Emulator::pop_DS()
     if (DS.empty())
         error("Attempted to pop empty DS");
     
-    size_t top = DS.top();
+    int32_t top = DS.top();
     DS.pop();
     
     return top;
 }
 
-void Emulator::swap_endianness(int32_t *value)
+int32_t Emulator::get_data_from_PM(const size_t beginning)
 {
-    *value = (*value >> 24) | ((*value >> 8) & 0xFF00) |
-                ((*value << 8) & 0xFF0000) | (*value << 24);
+    size_t bits = sizeof(uint8_t) * CHAR_BIT;
+    
+    int32_t result = 0;
+    
+    size_t i = 0;
+    for (int j = sizeof(uint32_t) - 1; j >= 0; j--, i++)
+        result |= PM[beginning + i] << (bits * j);
+    
+    return result;
 }
 
-bool Emulator::is_not_in_bounds(int32_t value)
+bool Emulator::is_not_in_bounds(const int32_t value)
 {
-    return value < 0 || value >= PM_SIZE;
+    return (value >= PM_SIZE) || (value < 0);
 }
 
 void Emulator::run()
-{       
+{
     for (IP = 0; IP < PM_SIZE; IP++)
         switch (PM[IP])
         {
-            case 0x00000000: // NOP
+            case 0x00: //NOP
                 break;
-            case 0x00000001: // ADD
+            case 0x01: //ADD
                 DS.push(pop_DS() + pop_DS());
                 break;
-            case 0x00000002: //SUB
+            case 0x02: //SUB
                 {
                     const int32_t Y = pop_DS(), X = pop_DS();
                     DS.push(X - Y);
                 }
                 break;
-            case 0x00000003: //NEG
+            case 0x03: //NEG
                 DS.push(-pop_DS());
                 break;
-            case 0x00000004: //SHL
+            case 0x04: //SHL
                 {
                     const int32_t Y = pop_DS(), X = pop_DS();
                     DS.push(X << Y);
                 }
                 break;
-            case 0x00000005: //SHR
+            case 0x05: //SHR
                 {
                     const int32_t Y = pop_DS(), X = pop_DS();
                     DS.push(X >> Y);
                 }
                 break;
-            case 0x00000006: //AND
+            case 0x06: //AND
                 DS.push(pop_DS() & pop_DS());
                 break;
-            case 0x00000007: //OR
+            case 0x07: //OR
                 DS.push(pop_DS() | pop_DS());
                 break;
-            case 0x00000008: //XOR
+            case 0x08: //XOR
                 DS.push(pop_DS() ^ pop_DS());
                 break;
-            case 0x00000009: //NOT
-                DS.push(!pop_DS());
+            case 0x09: //NOT
+                DS.push(~pop_DS());
                 break;
-            case 0x0000000A: //JMP
+            case 0x0A: //JMP
                 {
                     const int32_t X = pop_DS();
                     if (is_not_in_bounds(X))
                         error("X is out of bounds in JMP");
-                    IP = X - 1; // IP will get incremented in this loop afterwards
+                    
+                    IP = X - 1; //IP will get incremented in this loop afterwards
                 }
                 break;
-            case 0x0000000B: //JZ
+            case 0x0B: //JZ
                 {
                     const int32_t Y = pop_DS(), X = pop_DS();
                     if (is_not_in_bounds(Y))
                         error("Y is out of bounds in JZ");
                     if (X == 0)
-                        IP = X - 1; // IP will get incremented in this loop afterwards
+                        IP = Y - 1; //IP will get incremented in this loop afterwards
                 }
                 break;
-            case 0x0000000C: //JNZ
+            case 0x0C: //JNZ
                 {
                     const int32_t Y = pop_DS(), X = pop_DS();
                     if (is_not_in_bounds(Y))
                         error("Y is out of bounds in JZ");
                     if (X != 0)
-                        IP = X - 1; // IP will get incremented in this loop afterwards
+                        IP = Y - 1; //IP will get incremented in this loop afterwards
                 }
                 break;
-            case 0x0000000D: //PUSH
-                if (IP == PM_SIZE - 1)
-                    error("PUSH used without an operand");
-                DS.push(PM[++IP]);
+            case 0x0D: //PUSH
+                if (IP >= PM_SIZE - sizeof(int32_t))
+                    error("PUSH used without a proper operand");
+                DS.push(get_data_from_PM(IP + 1));
+                IP += sizeof(int32_t); // IP will get incremented in this loop afterwards
                 break;
-            case 0x0000000E: //RM
+            case 0x0E: //RM
                 pop_DS();
                 break;
-            case 0x0000000F: //PUSHIP
+            case 0x0F: //PUSHIP
                 IS.push(IP);
                 break;
-            case 0x00000010: //POPIP
+            case 0x10: //POPIP
                 IP = pop_IS();
                 if (is_not_in_bounds(IP))
-                    error("IP is out of bounds after POPIP");
+                    error("IP is out of bounds in POPIP");
                 break;
-            case 0x00000011: //RMIP
+            case 0x11: //RMIP
                 pop_IS();
                 break;
-            case 0x00000012: //PUSHPM
+            case 0x12: //PUSHPM
                 {
                     const int32_t X = pop_DS();
                     if (is_not_in_bounds(X))
                         error("X is out of bounds in PUSHPM");
-                    DS.push(PM[X]);
+                    DS.push(get_data_from_PM(X));
                 }
                 break;
-            case 0x00000013: //POPPM
+            case 0x13: //POPPM
                 {
-                    const int32_t Y = pop_DS(), X = pop_DS();
+                    int32_t Y = pop_DS();
+                    int32_t X = pop_DS();
                     if (is_not_in_bounds(X))
-                        error("X is out of bounds in PUSHPM");
-                    PM[X] = Y;
+                        error("X is out of bounds in POPPM");
+                    for (size_t i = 0; i < sizeof(int32_t); i++)
+                        PM[X++] = reinterpret_cast<int8_t*>(&Y)[sizeof(int32_t) - 1 - i];
                 }
                 break;
-            case 0x00000014: //INPUT
+            case 0x14: //INPUT
                 {
                     int32_t input;
                     std::cin >> input;
                     DS.push(input);
                 }
                 break;
-            case 0x00000015: //PEEK
+            case 0x15: //PEEK
+                if (DS.empty())
+                    error("Tried to PEEK empty DS");
                 std::cout << DS.top() << std::endl;
                 break;
-            case 0x00000016: //HALT
+            case 0x16: //HALT
                 return;
             default:
-                error("Unknown operation");
+                error("Unknown instruction");
         }
 }
 
