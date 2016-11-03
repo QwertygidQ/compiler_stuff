@@ -9,12 +9,12 @@ Emulator::Emulator(const std::string filename)
     std::ifstream file;
     file.open(filename, std::ios::binary | std::ios::ate);
     if (!file.is_open())
-        error("Could not open the ROM");
+        error("Could not open the ROM", false);
     
     std::streampos fsize = file.tellg();
-    std::cout << "Filesize: " << fsize << " bytes" << std::endl;
+    std::cout << "Filesize: " << fsize << " bytes" << std::endl << std::endl;
     if (fsize > PM_SIZE * sizeof(uint8_t))
-        error("Corrupt ROM");
+        error("Corrupt ROM", false);
     
     file.seekg(0);
     
@@ -28,7 +28,7 @@ Emulator::Emulator(const std::string filename)
 size_t Emulator::pop_IS()
 {
     if (IS.empty())
-        error("Attempted to pop empty IS");
+        error("Attempted to pop empty IS", true);
     
     size_t top = IS.top();
     IS.pop();
@@ -39,7 +39,7 @@ size_t Emulator::pop_IS()
 int32_t Emulator::pop_DS()
 {
     if (DS.empty())
-        error("Attempted to pop empty DS");
+        error("Attempted to pop empty DS", true);
     
     int32_t top = DS.top();
     DS.pop();
@@ -49,6 +49,9 @@ int32_t Emulator::pop_DS()
 
 int32_t Emulator::get_data_from_PM(const size_t beginning)
 {
+    if (is_not_in_bounds(beginning, PM_SIZE - sizeof(int32_t)))
+        error("Variable beginning is out of bounds in get_data_from_PM", true);
+    
     size_t bits = sizeof(uint8_t) * CHAR_BIT;
     
     int32_t result = 0;
@@ -112,7 +115,7 @@ void Emulator::run()
                 {
                     const int32_t X = pop_DS();
                     if (is_not_in_bounds(X))
-                        error("X is out of bounds in JMP");
+                        error("X is out of bounds in JMP", true);
                     
                     IP = X - 1; //IP will get incremented in this loop afterwards
                 }
@@ -121,7 +124,7 @@ void Emulator::run()
                 {
                     const int32_t Y = pop_DS(), X = pop_DS();
                     if (is_not_in_bounds(Y))
-                        error("Y is out of bounds in JZ");
+                        error("Y is out of bounds in JZ", true);
                     if (X == 0)
                         IP = Y - 1; //IP will get incremented in this loop afterwards
                 }
@@ -130,14 +133,14 @@ void Emulator::run()
                 {
                     const int32_t Y = pop_DS(), X = pop_DS();
                     if (is_not_in_bounds(Y))
-                        error("Y is out of bounds in JZ");
+                        error("Y is out of bounds in JZ", true);
                     if (X != 0)
                         IP = Y - 1; //IP will get incremented in this loop afterwards
                 }
                 break;
             case 0x0D: //PUSH
                 if (is_not_in_bounds(IP, PM_SIZE - sizeof(int32_t) - 1))
-                    error("PUSH used without a proper operand");
+                    error("PUSH used without a proper operand", true);
                 DS.push(get_data_from_PM(IP + 1));
                 IP += sizeof(int32_t); // IP will get incremented in this loop afterwards
                 break;
@@ -150,7 +153,7 @@ void Emulator::run()
             case 0x10: //POPIP
                 IP = pop_IS();
                 if (is_not_in_bounds(IP))
-                    error("IP is out of bounds in POPIP");
+                    error("IP is out of bounds in POPIP", true);
                 break;
             case 0x11: //RMIP
                 pop_IS();
@@ -159,7 +162,7 @@ void Emulator::run()
                 {
                     const int32_t X = pop_DS();
                     if (is_not_in_bounds(X, PM_SIZE - sizeof(int32_t)))
-                        error("X is out of bounds in PUSHPM");
+                        error("X is out of bounds in PUSHPM", true);
                     DS.push(get_data_from_PM(X));
                 }
                 break;
@@ -168,7 +171,7 @@ void Emulator::run()
                     int32_t Y = pop_DS();
                     int32_t X = pop_DS();
                     if (is_not_in_bounds(X, PM_SIZE - sizeof(int32_t)))
-                        error("X is out of bounds in POPPM");
+                        error("X is out of bounds in POPPM", true);
                     for (size_t i = 0; i < sizeof(int32_t); i++)
                         PM[X++] = reinterpret_cast<int8_t*>(&Y)[sizeof(int32_t) - 1 - i];
                 }
@@ -177,23 +180,29 @@ void Emulator::run()
                 {
                     int32_t input;
                     std::cin >> input;
+                    if (std::cin.fail())
+                        error("Invalid input", true);
                     DS.push(input);
                 }
                 break;
             case 0x15: //PEEK
                 if (DS.empty())
-                    error("Tried to PEEK empty DS");
+                    error("Tried to PEEK empty DS", true);
                 std::cout << DS.top() << std::endl;
                 break;
             case 0x16: //HALT
                 return;
             default:
-                error("Unknown instruction");
+                error("Unknown instruction", true);
         }
 }
 
-void Emulator::error(const std::string msg)
+void Emulator::error(const std::string msg, bool print_instr_number)
 {
-    std::cerr << msg << std::endl;
+    std::cerr << "ERROR: " << msg;
+    if (print_instr_number)
+        std::cerr << "; Instruction #" << IP;
+    std::cerr << std::endl;
+    
     exit(EXIT_FAILURE);
 }

@@ -20,7 +20,7 @@ public:
     
     void run();
     
-    void error(const std::string msg);
+    void error(const std::string msg, bool print_instr_number);
     
 private:
     static const size_t PM_SIZE = 4096;
