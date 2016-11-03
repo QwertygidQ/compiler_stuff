@@ -16,14 +16,14 @@ public:
     
     int32_t get_data_from_PM(const size_t beginning);
     
-    bool is_not_in_bounds(const int32_t value);
+    bool is_not_in_bounds(const int32_t value, const size_t right_bound = PM_SIZE - 1);
     
     void run();
     
     void error(const std::string msg);
     
 private:
-    static const size_t PM_SIZE = 1024;
+    static const size_t PM_SIZE = 4096;
     uint8_t PM[PM_SIZE] = {0};
     
     size_t IP = 0;

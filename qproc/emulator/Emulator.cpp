@@ -4,7 +4,7 @@
 #include <fstream>
 #include <iostream>
 
-Emulator::Emulator(std::string filename)
+Emulator::Emulator(const std::string filename)
 {
     std::ifstream file;
     file.open(filename, std::ios::binary | std::ios::ate);
@@ -12,6 +12,7 @@ Emulator::Emulator(std::string filename)
         error("Could not open the ROM");
     
     std::streampos fsize = file.tellg();
+    std::cout << "Filesize: " << fsize << " bytes" << std::endl;
     if (fsize > PM_SIZE * sizeof(uint8_t))
         error("Corrupt ROM");
     
@@ -59,9 +60,9 @@ int32_t Emulator::get_data_from_PM(const size_t beginning)
     return result;
 }
 
-bool Emulator::is_not_in_bounds(const int32_t value)
+bool Emulator::is_not_in_bounds(const int32_t value, const size_t right_bound)
 {
-    return (value >= PM_SIZE) || (value < 0);
+    return (value > right_bound) || (value < 0);
 }
 
 void Emulator::run()
@@ -135,7 +136,7 @@ void Emulator::run()
                 }
                 break;
             case 0x0D: //PUSH
-                if (IP >= PM_SIZE - sizeof(int32_t))
+                if (is_not_in_bounds(IP, PM_SIZE - sizeof(int32_t) - 1))
                     error("PUSH used without a proper operand");
                 DS.push(get_data_from_PM(IP + 1));
                 IP += sizeof(int32_t); // IP will get incremented in this loop afterwards
@@ -157,7 +158,7 @@ void Emulator::run()
             case 0x12: //PUSHPM
                 {
                     const int32_t X = pop_DS();
-                    if (is_not_in_bounds(X))
+                    if (is_not_in_bounds(X, PM_SIZE - sizeof(int32_t)))
                         error("X is out of bounds in PUSHPM");
                     DS.push(get_data_from_PM(X));
                 }
@@ -166,7 +167,7 @@ void Emulator::run()
                 {
                     int32_t Y = pop_DS();
                     int32_t X = pop_DS();
-                    if (is_not_in_bounds(X))
+                    if (is_not_in_bounds(X, PM_SIZE - sizeof(int32_t)))
                         error("X is out of bounds in POPPM");
                     for (size_t i = 0; i < sizeof(int32_t); i++)
                         PM[X++] = reinterpret_cast<int8_t*>(&Y)[sizeof(int32_t) - 1 - i];
