@@ -1,6 +1,7 @@
 #include "Assembler.hpp"
 
 #include <iostream>
+#include <stdexcept>
 
 int main()
 {
@@ -15,8 +16,18 @@ int main()
 	std::string dest_path;
 	std::cin >> dest_path;
 	
-	Assembler assembler(source_path, dest_path);
-	assembler.assemble();
+	try
+	{
+		Assembler assembler(source_path, dest_path);
+		assembler.assemble();
+	}
+	catch (const std::runtime_error &ex)
+	{
+		std::cerr << ex.what() << std::endl;
+		return EXIT_FAILURE;
+	}
+	
+	std::cout << std::endl << "Compilation success!" << std::endl;
 	
 	return EXIT_SUCCESS;
 }
