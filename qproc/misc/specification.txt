@@ -9,7 +9,7 @@ Instruction stack (IS) - std::stack<size_t>
 Instruction pointer (IP) - size_t
 Program memory (PM) - uint8_t[4096] (4 kiB = 4096 bytes)
 
-OPs:
+Instructions:
 NOP    (0x00) - do nothing
 ADD    (0x01) - pop Y, pop X, push X + Y
 SUB    (0x02) - pop Y, pop X, push X - Y
@@ -33,3 +33,33 @@ POPPM  (0x13) - pop Y, pop X, write Y (data word) to PM starting at PM[X]
 INPUT  (0x14) - push data word of input
 PEEK   (0x15) - output DS top
 HALT   (0x16) - stop execution
+
+Assembler specific stuff:
+LABEL_NAME:		<- Label declaraction
+call LABEL_NAME	<- Procedure call (Equal to PUSHIP, PUSH *LABEL_NAME's address*, JMP.
+					To return from the procedure, use POPIP)
+/*COMMENT*/		<- Comment declaraction
+
+While compiling assembly language program to machine code, all label names should be
+changed to their respective declaractions' addresses, and all label declaractions
+should be ignored altogether, as well as all comments.
+
+Assembly language EBNF:
+digit				= "0" | "1" | "2" | "3" | "4" | "5" | "6" | 7" | "8" | "9";
+character			= ? all visible characters ?;
+white_space			= ? all whitespace characters ?;
+
+integer				= ["-"], digit, {digit};
+comment				= "/*", {character | white_space}, "*/";
+
+instr				= "NOP" | "ADD" | "SUB" | "NEG" | "SHL"
+					| "SHR" | "AND" | "OR" | "XOR" | "NOT"
+					| "JMP" | "JZ" | "JNZ" | "PUSH" |"RM"
+					| "PUSHIP" | "POPIP" | "RMIP" | "PUSHPM"
+					| "POPPM" | "INPUT" | "PEEK" | "HALT"
+					| "CALL";
+
+label_name			= (character, {character}) - instr;
+label_decl			= label_name, ":";
+statement			= instr | label_decl | label_name | integer | comment;
+program				= {statement, white_space}, statement;
