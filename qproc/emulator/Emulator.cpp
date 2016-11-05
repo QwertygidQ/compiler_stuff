@@ -200,7 +200,7 @@ void Emulator::run()
 
 void Emulator::error(const std::string msg, bool print_instr_number)
 {
-    std::string exception_text = msg;
+    std::string exception_text = "ERROR: " + msg;
     if (print_instr_number)
         exception_text += " ; Instruction #" + std::to_string(IP);
         
