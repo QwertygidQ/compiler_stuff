@@ -3,6 +3,7 @@
 #include <iostream>
 #include <sstream>
 #include <stack>
+#include <stdexcept>
 
 double interpret(const std::string expr);
 void error(const std::string message);
@@ -20,7 +21,15 @@ int main()
     std::string expr;
     std::getline(std::cin, expr);
 
-    std::cout << "Result: " << interpret(expr) << std::endl;
+    try
+    {
+        std::cout << "Result: " << interpret(expr) << std::endl;
+    }
+    catch (const std::runtime_error &ex)
+    {
+        std::cerr << ex.what() << std::endl;
+        return EXIT_FAILURE;
+    }
 
     return EXIT_SUCCESS;
 }
@@ -53,39 +62,38 @@ double interpret(const std::string expr)
             }
             catch (const std::invalid_argument&)
             {
-                error("Unknown character! Quitting...");
+                error("Unknown character");
             }
             catch (const std::out_of_range&)
             {
-                error("Number value is out of range! Quitting...");
+                error("Number value is out of range");
             }
         }
     }
     
     if (stack.empty())
-        error("Stack is empty! Quitting...");
+        error("Stack is empty");
 
     return stack.top();
 }
 
 void error(const std::string message)
 {
-	std::cerr << message << std::endl;
-	exit(EXIT_FAILURE);
+	throw std::runtime_error(message);
 }
 
 template <class Func>
 void apply_op_to_stack(std::stack<double> *stack, const Func f)
 {
     if (stack -> size() < 2)
-        error("Stack is too small to perform an operation on! Quitting...");
+        error("Stack is too small to perform an operation on");
 
     double top = stack -> top();
     stack -> pop();
 
     double temp = f(stack -> top(), top);
     if (std::isinf(temp))
-        error("Division by zero attempt! Quitting...");
+        error("Division by zero attempt");
 
     stack -> top() = temp;
 }

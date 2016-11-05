@@ -3,6 +3,7 @@
 #include <climits>
 #include <fstream>
 #include <iostream>
+#include <stdexcept>
 
 Emulator::Emulator(const std::string filename)
 {
@@ -199,10 +200,9 @@ void Emulator::run()
 
 void Emulator::error(const std::string msg, bool print_instr_number)
 {
-    std::cerr << "ERROR: " << msg;
+    std::string exception_text = msg;
     if (print_instr_number)
-        std::cerr << "; Instruction #" << IP;
-    std::cerr << std::endl;
-    
-    exit(EXIT_FAILURE);
+        exception_text += " ; Instruction #" + std::to_string(IP);
+        
+    throw std::runtime_error(exception_text);
 }

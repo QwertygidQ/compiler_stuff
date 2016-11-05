@@ -52,14 +52,19 @@ white_space			= ? all whitespace characters ?;
 integer				= ["-"], digit, {digit};
 comment				= "/*", {character | white_space}, "*/";
 
-instr				= "NOP" | "ADD" | "SUB" | "NEG" | "SHL"
+no_operand_instr	= "NOP" | "ADD" | "SUB" | "NEG" | "SHL"
 					| "SHR" | "AND" | "OR" | "XOR" | "NOT"
-					| "JMP" | "JZ" | "JNZ" | "PUSH" |"RM"
-					| "PUSHIP" | "POPIP" | "RMIP" | "PUSHPM"
-					| "POPPM" | "INPUT" | "PEEK" | "HALT"
-					| "CALL";
+					| "JMP" | "JZ" | "JNZ" |"RM" |"PUSHIP"
+					| "POPIP" | "RMIP" | "PUSHPM" | "POPPM"
+					| "INPUT" | "PEEK" | "HALT";
 
-label_name			= (character, {character}) - instr;
+operand_instr		= "PUSH" | "CALL";
+
+label_name			= (character, {character}) - (no_operand_instr | operand_instr);
 label_decl			= label_name, ":";
-statement			= instr | label_decl | label_name | integer | comment;
+operand				= integer | label_name;
+
+statement			= no_operand_instr | label_decl
+					| (operand_instr, white_space, operand) | comment;
+					
 program				= {statement, white_space}, statement;

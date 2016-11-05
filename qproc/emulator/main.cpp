@@ -1,6 +1,7 @@
 #include "Emulator.hpp"
 
 #include <iostream>
+#include <stdexcept>
 
 int main()
 {
@@ -14,8 +15,16 @@ int main()
     
     std::cout << std::endl;
     
-    Emulator emulator(filename);
-    emulator.run();
+    try
+    {
+        Emulator emulator(filename);
+        emulator.run();
+    }
+    catch (const std::runtime_error &ex)
+    {
+        std::cerr << ex.what() << std::endl;
+        return EXIT_FAILURE;
+    }
     
     return EXIT_SUCCESS;
 }
