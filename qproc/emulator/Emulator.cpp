@@ -25,50 +25,6 @@ Emulator::Emulator(const std::string filename)
     
     file.close();
 }
-
-size_t Emulator::pop_IS()
-{
-    if (IS.empty())
-        error("Attempted to pop empty IS", true);
-    
-    size_t top = IS.top();
-    IS.pop();
-    
-    return top;
-}
-
-int32_t Emulator::pop_DS()
-{
-    if (DS.empty())
-        error("Attempted to pop empty DS", true);
-    
-    int32_t top = DS.top();
-    DS.pop();
-    
-    return top;
-}
-
-int32_t Emulator::get_data_from_PM(const size_t beginning)
-{
-    if (is_not_in_bounds(beginning, PM_SIZE - sizeof(int32_t)))
-        error("Variable beginning is out of bounds in get_data_from_PM", true);
-    
-    size_t bits = sizeof(uint8_t) * CHAR_BIT;
-    
-    int32_t result = 0;
-    
-    size_t i = 0;
-    for (int j = sizeof(uint32_t) - 1; j >= 0; j--, i++)
-        result |= PM[beginning + i] << (bits * j);
-    
-    return result;
-}
-
-bool Emulator::is_not_in_bounds(const int32_t value, const size_t right_bound)
-{
-    return (value > right_bound) || (value < 0);
-}
-
 void Emulator::run()
 {
     for (IP = 0; IP < PM_SIZE; IP++)
@@ -196,6 +152,49 @@ void Emulator::run()
             default:
                 error("Unknown instruction", true);
         }
+}
+
+size_t Emulator::pop_IS()
+{
+    if (IS.empty())
+        error("Attempted to pop empty IS", true);
+    
+    size_t top = IS.top();
+    IS.pop();
+    
+    return top;
+}
+
+int32_t Emulator::pop_DS()
+{
+    if (DS.empty())
+        error("Attempted to pop empty DS", true);
+    
+    int32_t top = DS.top();
+    DS.pop();
+    
+    return top;
+}
+
+int32_t Emulator::get_data_from_PM(const size_t beginning)
+{
+    if (is_not_in_bounds(beginning, PM_SIZE - sizeof(int32_t)))
+        error("Variable beginning is out of bounds in get_data_from_PM", true);
+    
+    size_t bits = sizeof(uint8_t) * CHAR_BIT;
+    
+    int32_t result = 0;
+    
+    size_t i = 0;
+    for (int j = sizeof(uint32_t) - 1; j >= 0; j--, i++)
+        result |= PM[beginning + i] << (bits * j);
+    
+    return result;
+}
+
+bool Emulator::is_not_in_bounds(const int32_t value, const size_t right_bound)
+{
+    return (value > right_bound) || (value < 0);
 }
 
 void Emulator::error(const std::string msg, bool print_instr_number)
