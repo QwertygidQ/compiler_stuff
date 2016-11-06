@@ -1,5 +1,6 @@
 #include "Assembler.hpp"
 
+#include <cstdlib>
 #include <iostream>
 #include <stdexcept>
 
@@ -23,7 +24,7 @@ int main()
 	}
 	catch (const std::runtime_error &ex)
 	{
-		std::cerr << ex.what() << std::endl;
+		std::cerr << std::endl << ex.what() << std::endl;
 		return EXIT_FAILURE;
 	}
 	

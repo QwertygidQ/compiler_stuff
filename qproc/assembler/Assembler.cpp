@@ -13,8 +13,6 @@ Assembler::Assembler(std::string source_path, std::string dest_path)
 	output.open(dest_path, std::ios::binary | std::ios::trunc);
 	if (!output.is_open())
 		error("Failed to open ROM");
-		
-	current_memory_location = 0;
 }
 
 Assembler::~Assembler()
@@ -63,20 +61,23 @@ void Assembler::assemble()
 		
 		try
 		{
-			 uint8_t value = instrs.at(next);
-			output.write(reinterpret_cast<char*>(&value), sizeof(uint8_t));
+			uint8_t value = instrs.at(next);
+			program.push_back(value);
+			
 			if (next == "PUSH")
 			{
 				std::string integer_str;
-				input >> integer_str;
 				if (input.eof())
 					error("PUSH used without an operand");
+				input >> integer_str;
 				
 				try
 				{
 					int32_t integer = std::stoi(integer_str);
 					swap_endianness(&integer);
-					output.write(reinterpret_cast<char*>(&integer), sizeof(int32_t));
+					uint8_t *integer_uint8_t_repr = reinterpret_cast<uint8_t*>(&integer);
+					for (size_t i = 0; i < sizeof(int32_t); i++)
+						program.push_back(integer_uint8_t_repr[i]);
 				}
 				catch (const std::invalid_argument&)
 				{
@@ -100,8 +101,12 @@ void Assembler::assemble()
 			else if (next.back() == ':') // label declaration
 			{
 				next.pop_back();
-				if (next == "CALL")
+				
+				if (next.empty())
+					error("Colon should be preceeded with a label name");
+				else if (next == "CALL")
 					error("Label cannot be named one of the reserved words");
+					
 				try
 				{
 					instrs.at(next);
@@ -117,6 +122,8 @@ void Assembler::assemble()
 				error("Unknown symbol");
 		}
 	}
+	
+	write_program();
 }
 
 void Assembler::swap_endianness(int32_t* value) // Change, perhaps?
@@ -128,4 +135,13 @@ void Assembler::swap_endianness(int32_t* value) // Change, perhaps?
 void Assembler::error(std::string msg)
 {
 	throw std::runtime_error(msg);
+}
+
+void Assembler::write_program()
+{	
+	const int MAX_PROG_SIZE = 4096;
+	if (program.size() > MAX_PROG_SIZE)
+		error("Resulting program's size is bigger than MAX_PROG_SIZE");
+	
+	output.write(reinterpret_cast<char*>(program.data()), program.size());
 }

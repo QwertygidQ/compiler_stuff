@@ -2,7 +2,6 @@
 #define ASSEMBLER_H
 
 #include <cstdint>
-#include <cstdlib>
 #include <fstream>
 #include <string>
 #include <vector>
@@ -15,15 +14,15 @@ public:
 	
 	void assemble();
 	
-	void swap_endianness(int32_t* value);
-	
-	void error(std::string msg);
-	
 private:
+	void swap_endianness(int32_t* value);
+	void error(std::string msg);
+	void write_program();
+	
 	std::ifstream input;
 	std::ofstream output;
 	
-	size_t current_memory_location;
+	std::vector<uint8_t> program;
 };
 
 #endif // ASSEMBLER_H

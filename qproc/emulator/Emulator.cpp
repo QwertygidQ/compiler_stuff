@@ -105,12 +105,18 @@ void Emulator::run()
                 pop_DS();
                 break;
             case 0x0F: //PUSHIP
-                IS.push(IP);
+                {
+                    const int32_t X = pop_DS();
+                    if (is_not_in_bounds(X))
+                        error("X is out of bounds in PUSHIP", true);
+                    IS.push(X);
+                }
                 break;
             case 0x10: //POPIP
                 IP = pop_IS();
                 if (is_not_in_bounds(IP))
                     error("IP is out of bounds in POPIP", true);
+                IP--; // IP will get incremented in this loop afterwards
                 break;
             case 0x11: //RMIP
                 pop_IS();
