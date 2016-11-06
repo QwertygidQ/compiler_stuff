@@ -25,7 +25,7 @@ JZ     (0x0B) - pop Y, pop X, if X == 0, set IP to Y
 JNZ    (0x0C) - pop Y, pop X, if X != 0, set IP to Y
 PUSH   (0x0D) - push next data word from PM and skip it
 RM     (0x0E) - remove DS top
-PUSHIP (0x0F) - push IP onto IS
+PUSHIP (0x0F) - pop X, push X onto IS
 POPIP  (0x10) - pop X from IS, set IP to X
 RMIP   (0x11) - remove IS top
 PUSHPM (0x12) - pop X, push data word starting at PM[X]
@@ -36,8 +36,8 @@ HALT   (0x16) - stop execution
 
 Assembler specific stuff:
 LABEL_NAME:		<- Label declaraction
-call LABEL_NAME	<- Procedure call (Equal to PUSHIP, PUSH *LABEL_NAME's address*, JMP.
-					To return from the procedure, use POPIP)
+CALL LABEL_NAME	<- Procedure call (Equal to PUSH *address after JMP*, PUSHIP,
+					PUSH *LABEL_NAME's address*, JMP. To return from the procedure, use POPIP)
 /*COMMENT*/		<- Comment declaraction
 
 While compiling assembly language program to machine code, all label names should be
