@@ -1,5 +1,5 @@
-#ifndef ASSEMBLER_H
-#define ASSEMBLER_H
+#ifndef ASSEMBLER_HPP
+#define ASSEMBLER_HPP
 
 #include <cstdint>
 #include <fstream>
@@ -17,6 +17,9 @@ public:
 	void assemble();
 	
 private:
+	template <class Key, class Value>
+	bool is_present_in_map(const std::map<Key, Value> *m, const Key key);
+	
 	void reserve_space_for_label();
 	void put_labels_in_reserved_spaces();
 	void swap_endianness(int32_t* value);

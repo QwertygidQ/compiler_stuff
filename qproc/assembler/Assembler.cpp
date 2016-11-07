@@ -51,10 +51,9 @@ void Assembler::assemble()
 		std::string next;
 		input >> next;
 		
-		try
+		if (is_present_in_map(&instrs, next)) // Is next an instruction?
 		{
-			uint8_t value = instrs.at(next); // Is next an instruction?
-			program.push_back(value);
+			program.push_back(instrs.at(next));
 			
 			if (next == "PUSH")
 			{
@@ -73,27 +72,16 @@ void Assembler::assemble()
 				}
 				catch (const std::invalid_argument&)
 				{
-					try
-					{
-						instrs.at(operand_str); // Is operand_str an instruction?
+					if (is_present_in_map(&instrs, operand_str)) // Is operand_str an instruction?
 						error("An instruction cannot be an operand to PUSH");
-					}
-					catch (const std::out_of_range&)
-					{
-						try
-						{
-							auto &value_pair = labels.at(operand_str); // Does this label already exist?
-							value_pair.first.push_back(program.size());
-						}
-						catch (const std::out_of_range&)
-						{
-							labels.emplace(operand_str,
-								std::make_pair(std::vector<size_t>(1, program.size()),
-								INITIAL_ADDRESS));
-						}
-						
-						reserve_space_for_label();
-					}
+					else if (is_present_in_map(&labels, operand_str)) // Does this label already exist?
+						labels.at(operand_str).first.push_back(program.size());
+					else
+						labels.emplace(operand_str,
+							std::make_pair(std::vector<size_t>(1, program.size()),
+							INITIAL_ADDRESS));
+							
+					reserve_space_for_label();
 				}
 				catch (const std::out_of_range&)
 				{
@@ -101,12 +89,11 @@ void Assembler::assemble()
 				}
 			}
 		}
-		catch (const std::out_of_range&) // next is not in instrs map
+		else
 		{
 			if (next.empty())
 				error("Got an empty string");
-				
-			if (next == "CALL")
+			else if (next == "CALL")
 			{
 				//ADD CALL FUNCTIONALITY!!!
 			}
@@ -116,29 +103,18 @@ void Assembler::assemble()
 				
 				if (next.empty())
 					error("Colon should be preceeded with a label name");
-				else if (next == "CALL")
+				else if (next == "CALL" || is_present_in_map(&instrs, next)) // Is next an instruction?
 					error("Label cannot be named one of the reserved words");
-					
-				try
+				else if (is_present_in_map(&labels, next)) // Does this label already exist?
 				{
-					instrs.at(next); // Is next an instruction?
-					error("Label cannot be named one of the reserved words");
+					auto &value_pair = labels.at(next); 
+					if (value_pair.second != INITIAL_ADDRESS)
+						error("Label redeclaration");
+					value_pair.second = program.size();
 				}
-				catch (const std::out_of_range&)
-				{
-					try
-					{
-						auto &value_pair = labels.at(next); // Does this label already exist?
-						if (value_pair.second != INITIAL_ADDRESS)
-							error("Label redeclaration");
-						value_pair.second = program.size();
-					}
-					catch (std::out_of_range&)
-					{
-						labels.emplace(next,
-							std::make_pair(std::vector<size_t>(), program.size()));
-					}
-				}
+				else
+					labels.emplace(next,
+						std::make_pair(std::vector<size_t>(), program.size()));
 			}
 			//else if (*comment*) ADD COMMENT FUNCTIONALITY!!!
 			else
@@ -149,6 +125,12 @@ void Assembler::assemble()
 	put_labels_in_reserved_spaces();
 	
 	write_program();
+}
+
+template <class Key, class Value>
+bool Assembler::is_present_in_map(const std::map<Key, Value> *m, const Key key)
+{
+	return m -> find(key) != m -> end();
 }
 
 void Assembler::reserve_space_for_label()
