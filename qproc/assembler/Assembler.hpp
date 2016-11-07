@@ -20,6 +20,7 @@ private:
 	template <class Key, class Value>
 	bool is_present_in_map(const std::map<Key, Value> *m, const Key key);
 	
+	void handle_operand(const std::string instr_name);
 	void reserve_space_for_label();
 	void put_labels_in_reserved_spaces();
 	void swap_endianness(int32_t* value);
@@ -38,6 +39,33 @@ private:
 	 * std::vector - vector of label usages' locations;
 	 * int32_t - label declaration's address
 	*/
+	
+	const std::map<std::string, uint8_t> instrs = 
+	{
+		{"NOP",    0x00},
+		{"ADD",    0x01},
+		{"SUB",    0x02},
+		{"NEG",    0x03},
+		{"SHL",    0x04},
+		{"SHR",    0x05},
+		{"AND",    0x06},
+		{"OR",     0x07},
+		{"XOR",    0x08},
+		{"NOT",    0x09},
+		{"JMP",    0x0A},
+		{"JZ",     0x0B},
+		{"JNZ",    0x0C},
+		{"PUSH",   0x0D},
+		{"RM",     0x0E},
+		{"PUSHIP", 0x0F},
+		{"POPIP",  0x10},
+		{"RMIP",   0x11},
+		{"PUSHPM", 0x12},
+		{"POPPM",  0x13},
+		{"INPUT",  0x14},
+		{"PEEK",   0x15},
+		{"HALT",   0x16}
+	};
 };
 
 #endif // ASSEMBLER_H

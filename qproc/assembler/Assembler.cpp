@@ -19,33 +19,6 @@ Assembler::~Assembler()
 
 void Assembler::assemble()
 {
-	const std::map<std::string, uint8_t> instrs = 
-	{
-		{"NOP",    0x00},
-		{"ADD",    0x01},
-		{"SUB",    0x02},
-		{"NEG",    0x03},
-		{"SHL",    0x04},
-		{"SHR",    0x05},
-		{"AND",    0x06},
-		{"OR",     0x07},
-		{"XOR",    0x08},
-		{"NOT",    0x09},
-		{"JMP",    0x0A},
-		{"JZ",     0x0B},
-		{"JNZ",    0x0C},
-		{"PUSH",   0x0D},
-		{"RM",     0x0E},
-		{"PUSHIP", 0x0F},
-		{"POPIP",  0x10},
-		{"RMIP",   0x11},
-		{"PUSHPM", 0x12},
-		{"POPPM",  0x13},
-		{"INPUT",  0x14},
-		{"PEEK",   0x15},
-		{"HALT",   0x16}
-	};
-
 	while (!input.eof())
 	{
 		std::string next;
@@ -56,38 +29,7 @@ void Assembler::assemble()
 			program.push_back(instrs.at(next));
 			
 			if (next == "PUSH")
-			{
-				std::string operand_str;
-				if (input.eof())
-					error("PUSH used without an operand");
-				input >> operand_str;
-				
-				try
-				{
-					int32_t integer = std::stoi(operand_str); // Is operand_str an integer?
-					swap_endianness(&integer);
-					uint8_t *integer_uint8_t_repr = reinterpret_cast<uint8_t*>(&integer);
-					for (size_t i = 0; i < sizeof(int32_t); i++)
-						program.push_back(integer_uint8_t_repr[i]);
-				}
-				catch (const std::invalid_argument&)
-				{
-					if (is_present_in_map(&instrs, operand_str)) // Is operand_str an instruction?
-						error("An instruction cannot be an operand to PUSH");
-					else if (is_present_in_map(&labels, operand_str)) // Does this label already exist?
-						labels.at(operand_str).first.push_back(program.size());
-					else
-						labels.emplace(operand_str,
-							std::make_pair(std::vector<size_t>(1, program.size()),
-							INITIAL_ADDRESS));
-							
-					reserve_space_for_label();
-				}
-				catch (const std::out_of_range&)
-				{
-					error("Integer is too big");
-				}
-			}
+				handle_operand("PUSH");
 		}
 		else
 		{
@@ -95,7 +37,19 @@ void Assembler::assemble()
 				error("Got an empty string");
 			else if (next == "CALL")
 			{
-				//ADD CALL FUNCTIONALITY!!!
+				program.push_back(instrs.at("PUSH"));
+				
+				int32_t after_jmp_addr = program.size() + 3 * sizeof(uint8_t) + 2 * sizeof(int32_t);
+				swap_endianness(&after_jmp_addr);
+				const uint8_t *after_jmp_addr_uint8_t_repr = reinterpret_cast<const uint8_t*>(&after_jmp_addr);
+				for (size_t i = 0; i < sizeof(int32_t); i++)
+					program.push_back(after_jmp_addr_uint8_t_repr[i]);
+				
+				program.push_back(instrs.at("PUSHIP"));
+				
+				program.push_back(instrs.at("PUSH"));
+				handle_operand("CALL");
+				program.push_back(instrs.at("JMP"));
 			}
 			else if (next.back() == ':') // Is next a label declaration?
 			{
@@ -131,6 +85,40 @@ template <class Key, class Value>
 bool Assembler::is_present_in_map(const std::map<Key, Value> *m, const Key key)
 {
 	return m -> find(key) != m -> end();
+}
+
+void Assembler::handle_operand(const std::string instr_name)
+{
+	std::string operand_str;
+	if (input.eof())
+		error(instr_name + " used without an operand");
+	input >> operand_str;
+
+	try
+	{
+		int32_t integer = std::stoi(operand_str); // Is operand_str an integer?
+		swap_endianness(&integer);
+		uint8_t *integer_uint8_t_repr = reinterpret_cast<uint8_t*>(&integer);
+		for (size_t i = 0; i < sizeof(int32_t); i++)
+			program.push_back(integer_uint8_t_repr[i]);
+	}
+	catch (const std::invalid_argument&)
+	{
+		if (is_present_in_map(&instrs, operand_str)) // Is operand_str an instruction?
+			error("An instruction cannot be an operand to " + instr_name);
+		else if (is_present_in_map(&labels, operand_str)) // Does this label already exist?
+			labels.at(operand_str).first.push_back(program.size());
+		else
+			labels.emplace(operand_str,
+				std::make_pair(std::vector<size_t>(1, program.size()),
+				INITIAL_ADDRESS));
+				
+		reserve_space_for_label();
+	}
+	catch (const std::out_of_range&)
+	{
+		error("Integer is too big");
+	}
 }
 
 void Assembler::reserve_space_for_label()
