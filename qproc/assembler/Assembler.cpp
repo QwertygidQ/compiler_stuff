@@ -145,7 +145,7 @@ void Assembler::put_labels_in_reserved_spaces()
 	}
 }
 
-void Assembler::swap_endianness(int32_t* value) // Change, perhaps?
+void Assembler::swap_endianness(int32_t* value)
 {
 	*value = (*value >> 24) | ((*value >> 8) & 0xFF00) |
 		((*value << 8) & 0xFF0000) | (*value << 24);
