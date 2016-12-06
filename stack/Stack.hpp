@@ -8,6 +8,8 @@
 template <typename T>
 class Stack
 {
+private:
+    int start_canary;
 public:
     size_t max_size;
 
