@@ -41,7 +41,6 @@ size_t Stack<T>::size() const
 template <typename T>
 void Stack<T>::push(T element)
 {
-    *(reinterpret_cast<int*>(this)) = 228;
     if (cur_size == max_size)
         error("Attempted to push out of stack bounds", true);
 
