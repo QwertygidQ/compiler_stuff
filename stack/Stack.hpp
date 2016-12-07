@@ -27,6 +27,10 @@ public:
 
 private:
     void error(std::string error_msg, bool dump_needed) const;
+    T calculate_checksum() const;
+    void verify_checksum() const;
+
+    T checksum;
 
     size_t cur_size;
     T *mem;

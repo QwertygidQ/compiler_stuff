@@ -18,6 +18,8 @@ Stack<T>::Stack(const size_t max_size)
     }
 
     mem[max_size] = DEFAULT_CANARY;
+
+    checksum = calculate_checksum();
 }
 
 template <typename T>
@@ -29,28 +31,35 @@ Stack<T>::~Stack()
 template <typename T>
 bool Stack<T>::empty() const
 {
-    return size == 0;
+    verify_checksum();
+    return cur_size == 0;
 }
 
 template <typename T>
 size_t Stack<T>::size() const
 {
-    return size;
+    verify_checksum();
+    return cur_size;
 }
 
 template <typename T>
 void Stack<T>::push(T element)
 {
-    *(reinterpret_cast<int*>(this)) = 228;
+    verify_checksum();
+
     if (cur_size == max_size)
         error("Attempted to push out of stack bounds", true);
 
     mem[cur_size++] = element;
+
+    checksum = calculate_checksum();
 }
 
 template <typename T>
 T Stack<T>::top() const
 {
+    verify_checksum();
+
     if (cur_size == 0)
         error("Attempted to access an empty stack", true);
 
@@ -60,10 +69,16 @@ T Stack<T>::top() const
 template <typename T>
 T Stack<T>::pop()
 {
+    verify_checksum();
+
     if (cur_size == 0)
         error("Attempted to access an empty stack", true);
 
-    return mem[--cur_size];
+    cur_size--;
+
+    checksum = calculate_checksum();
+
+    return mem[cur_size];
 }
 
 template <typename T>
@@ -93,6 +108,12 @@ void Stack<T>::dump() const
     std::cerr << "End canary value: " << mem[max_size] << " @ " << mem + max_size <<
                 "; Status: " << CANARY_STATUS(mem[max_size]) << std::endl;
 
+    std::cerr << std::endl;
+    std::cerr << "Previous checksum value: " << checksum << std::endl;
+    std::cerr << "Current checksum value: " << calculate_checksum() << std::endl;
+    std::cerr << "Checksum status: " << (checksum == calculate_checksum() ? "OK" : "FAILURE") <<
+                std::endl;
+
     std::cerr << "------------STACK DUMP END------------" << std::endl;
 }
 
@@ -105,4 +126,23 @@ void Stack<T>::error(std::string error_msg, bool dump_needed) const
         dump();
 
     throw std::runtime_error("Stack error");
+}
+
+template <typename T>
+T Stack<T>::calculate_checksum() const
+{
+    T new_checksum = start_canary + max_size +
+        cur_size;
+
+    for (size_t i = 0; i < max_size + 1; i++)
+        new_checksum += mem[i];
+
+    return new_checksum;
+}
+
+template <typename T>
+void Stack<T>::verify_checksum() const
+{
+    if (checksum != calculate_checksum())
+        error("Checksum verification failed", true);
 }
