@@ -7,7 +7,7 @@ Instruction word - 1 byte (uint8_t)
 Data stack (DS) - std::stack<int32_t> (Data word - 32 bits = 4 bytes)
 Instruction stack (IS) - std::stack<size_t>
 Instruction pointer (IP) - size_t
-Program memory (PM) - uint8_t[4096] (4 kiB = 4096 bytes)
+Program memory (PM) - uint8_t[16384] (16 kiB = 16384 bytes)
 
 Instructions:
 NOP    (0x00) - do nothing

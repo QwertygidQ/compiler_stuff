@@ -18,7 +18,7 @@ private:
     void error(std::string err_msg, bool print_ip) const;
     int32_t construct_integer(size_t start_pos) const;
 
-    static const size_t MAX_ROM_SIZE = 4096;
+    static const size_t MAX_ROM_SIZE = 16384;
     uint8_t ROM[MAX_ROM_SIZE] = {0};
 
     size_t ip;
