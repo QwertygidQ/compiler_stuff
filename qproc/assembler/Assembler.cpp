@@ -158,7 +158,7 @@ void Assembler::error(std::string msg)
 
 void Assembler::write_program()
 {
-	const int MAX_PROG_SIZE = 16384;
+	const int MAX_PROG_SIZE = 204800;
 	if (program.size() > MAX_PROG_SIZE)
 		error("Resulting program's size is bigger than MAX_PROG_SIZE");
 

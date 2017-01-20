@@ -1,9 +1,10 @@
 #include "Emulator.hpp"
 
 #include <iostream>
+#include <limits>
 #include <stdexcept>
 
-int main()
+int main(int argc, char *argv[])
 {
     std::cout << std::endl << "QProc emulator" << std::endl <<
         "Qwertygid, 2016" << std::endl << std::endl;
@@ -22,7 +23,7 @@ int main()
     }
     catch (const std::runtime_error &ex)
     {
-        std::cerr << ex.what() << std::endl;
+		std::cerr << ex.what() << std::endl;
         return EXIT_FAILURE;
     }
     catch (const std::exception &ex)
@@ -49,6 +50,11 @@ int main()
             << std::endl;
         return EXIT_FAILURE;
     }
+
+	std::cout << std::endl << "The program has finished. Press ENTER to continue..." << std::endl;
+
+	std::cin.ignore();
+	std::cin.get();
 
     return EXIT_SUCCESS;
 }
