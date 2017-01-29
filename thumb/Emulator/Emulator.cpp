@@ -30,47 +30,98 @@ Emulator::Emulator(std::string filename)
 
 void Emulator::run()
 {
+	enum Formats
+	{
+
+	};
+
 	for (; pc < PM_SIZE; pc++)
 	{
 		switch (get_format_type(PM[pc]))
 		{
-		case 0:
+		case 0:		// Software Interrupt
 			break;
-		case 1:
+		case 1:		// Add offset to stack pointer
 			break;
-		case 2:
+		case 2:		// Hi register operations/branch exchange
 			break;
-		case 3:
+		case 3:		// ALU operations
+		{
+			uint16_t op = get_bit_sequence(PM[pc], 9, 6);
+			uint16_t rs = get_bit_sequence(PM[pc], 5, 3);
+			uint16_t rd = get_bit_sequence(PM[pc], 2, 0);
+		}
 			break;
-		case 4:
+		case 4:		// Add/subtract
+		{
+			uint8_t i = get_bit(PM[pc], 10);
+			uint8_t op = get_bit(PM[pc], 9);
+			uint16_t argument = get_bit_sequence(PM[pc], 8, 6);
+			uint16_t rs = get_bit_sequence(PM[pc], 5, 3);
+			uint16_t rd = get_bit_sequence(PM[pc], 2, 0);
+
+			if (!op)
+			{
+				if (!i)
+					r[rd] = r[rs] + r[argument];
+				else
+					r[rd] = r[rs] + argument;
+			}
+			else
+			{
+				if (!i)
+					r[rd] = r[rs] - r[argument];
+				else
+					r[rd] = r[rs] - argument;
+			}
+		}
 			break;
-		case 5:
+		case 5:		// PC-relative load
 			break;
-		case 6:
+		case 6:		// Unconditional branch
 			break;
-		case 7:
+		case 7:		// Load/store with register offset
 			break;
-		case 8:
+		case 8:		// Load/store sign-extended byte/halfword
 			break;
-		case 9:
+		case 9:		// Load/store halfword
 			break;
-		case 10:
+		case 10:	// SP-relative load/store
 			break;
-		case 11:
+		case 11:	// Load address
 			break;
-		case 12:
+		case 12:	// Push/pop registers
 			break;
-		case 13:
+		case 13:	// Multiple load/store
 			break;
-		case 14:
+		case 14:	// Conditional branch
 			break;
-		case 15:
+		case 15:	// Long branch with link
 			break;
-		case 16:
+		case 16:	// Move shifted register
+		{
+			uint16_t op = get_bit_sequence(PM[pc], 12, 11);
+			uint16_t offset5 = get_bit_sequence(PM[pc], 10, 6);
+			uint16_t rs = get_bit_sequence(PM[pc], 5, 3);
+			uint16_t rd = get_bit_sequence(PM[pc], 2, 0);
+
+			switch (op)
+			{
+			case 0b00:
+				r[rd] = r[rs] << offset5;
+				break;
+			case 0b01:
+				r[rd] = r[rs] >> offset5;
+				break;
+			case 0b10:
+				r[rd] = (int32_t)r[rs] >> offset5;
+			}
+
+		}
 			break;
-		case 17:
+		case 17:	// Move/compare/add/subtract immediate
 			break;
-		case 18:
+		case 18:	// Load/store with immediate offset
 			break;
 		default:
 			error("Unknown format type", true);
@@ -110,25 +161,25 @@ int Emulator::get_format_type(const uint16_t instr)
 	const size_t SIGNATURES_NUM = 19;
 	const std::pair<uint16_t, int> signatures[] = // { signature, its length }
 	{
-		{ 0b11011111,	8 },
-		{ 0b10110000,	8 },
-		{ 0b010001,		6 },
-		{ 0b010000,		6 },
-		{ 0b00011,		5 },
-		{ 0b01001,		5 },
-		{ 0b11100,		5 },
-		{ 0b0101,		4 },	// check if bit 9 is 0
-		{ 0b0101,		4 },	// check if bit 9 is 1
-		{ 0b1000,		4 },
-		{ 0b1001,		4 },
-		{ 0b1010,		4 },
-		{ 0b1011,		4 },	// check if bits 10 & 9 are 10
-		{ 0b1100,		4 },
-		{ 0b1101,		4 },
-		{ 0b1111,		4 },
-		{ 0b000,		3 },
-		{ 0b001,		3 },
-		{ 0b011,		3 }
+		{ 0b11011111,	8 },	// #0; Software Interrupt
+		{ 0b10110000,	8 },	// #1; Add offset to stack pointer
+		{ 0b010001,		6 },	// #2; Hi register operations/branch exchange
+		{ 0b010000,		6 },	// #3; ALU operations
+		{ 0b00011,		5 },	// #4; Add/subtract
+		{ 0b01001,		5 },	// #5; PC-relative load
+		{ 0b11100,		5 },	// #6; Unconditional branch
+		{ 0b0101,		4 },	// #7; Load/store with register offset (check if bit 9 is 0)
+		{ 0b0101,		4 },	// #8; Load/store sign-extended byte/halfword (check if bit 9 is 1)
+		{ 0b1000,		4 },	// #9; Load/store halfword
+		{ 0b1001,		4 },	// #10; SP-relative load/store
+		{ 0b1010,		4 },	// #11; Load address
+		{ 0b1011,		4 },	// #12; Push/pop registers (check if bits 10 & 9 are 10)
+		{ 0b1100,		4 },	// #13; Multiple load/store
+		{ 0b1101,		4 },	// #14; Conditional branch
+		{ 0b1111,		4 },	// #15; Long branch with link
+		{ 0b000,		3 },	// #16; Move shifted register
+		{ 0b001,		3 },	// #17; Move/compare/add/subtract immediate
+		{ 0b011,		3 }		// #18; Load/store with immediate offset
 	};
 
 	for (int i = 0; i < SIGNATURES_NUM; i++)
