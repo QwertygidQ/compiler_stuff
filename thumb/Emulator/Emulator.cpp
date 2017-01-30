@@ -1,5 +1,6 @@
 #include "Emulator.hpp"
 
+#include <climits>
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
@@ -30,11 +31,6 @@ Emulator::Emulator(std::string filename)
 
 void Emulator::run()
 {
-	enum Formats
-	{
-
-	};
-
 	for (; pc < PM_SIZE; pc++)
 	{
 		switch (get_format_type(PM[pc]))
@@ -62,18 +58,41 @@ void Emulator::run()
 
 			if (!op)
 			{
-				if (!i)
+				if (!i) // ADD (register)
+				{
+					change_bit(cpsr, Flags::C, r[rs] > UINT32_MAX - r[argument]);
+					change_bit(cpsr, Flags::V, r[rs] > INT32_MAX - r[argument]);
+
 					r[rd] = r[rs] + r[argument];
-				else
+				}
+				else //ADD (immediate)
+				{
+					change_bit(cpsr, Flags::C, r[rs] > UINT32_MAX - argument);
+					change_bit(cpsr, Flags::V, r[rs] > INT32_MAX - argument);
+
 					r[rd] = r[rs] + argument;
+				}
 			}
 			else
 			{
-				if (!i)
+				if (!i) // SUB (register)
+				{
+					change_bit(cpsr, Flags::C, r[rs] < r[argument]);
+					change_bit(cpsr, Flags::V, r[rs] < INT32_MIN + r[argument]);
+
 					r[rd] = r[rs] - r[argument];
-				else
+				}
+				else // SUB (immediate)
+				{
+					change_bit(cpsr, Flags::C, r[rs] < argument);
+					change_bit(cpsr, Flags::V, r[rs] < INT32_MIN + argument);
+
 					r[rd] = r[rs] - argument;
+				}
 			}
+
+			change_bit(cpsr, Flags::N, get_bit(r[rd], 31));
+			change_bit(cpsr, Flags::Z, r[rd] == 0);
 		}
 			break;
 		case 5:		// PC-relative load
@@ -105,16 +124,37 @@ void Emulator::run()
 			uint16_t rs = get_bit_sequence(PM[pc], 5, 3);
 			uint16_t rd = get_bit_sequence(PM[pc], 2, 0);
 
+			change_bit(cpsr, Flags::N, 0);
+			change_bit(cpsr, Flags::Z, 0);
+			change_bit(cpsr, Flags::C, 0);
+
 			switch (op)
 			{
-			case 0b00:
+			case 0b00:	//LSL
 				r[rd] = r[rs] << offset5;
+
+				if (offset5 > 0)
+					change_bit(cpsr, Flags::C, get_bit(r[rs], 31 - offset5 + 1));
 				break;
-			case 0b01:
+			case 0b01:	//LSR
 				r[rd] = r[rs] >> offset5;
+
+				if (offset5 > 0)
+					change_bit(cpsr, Flags::C, get_bit(r[rs], offset5 - 1));
 				break;
-			case 0b10:
+			case 0b10:	//ASR
 				r[rd] = (int32_t)r[rs] >> offset5;
+
+				if (offset5 > 0)
+					change_bit(cpsr, Flags::C, get_bit(r[rs], offset5 - 1));
+			default:
+				error("Unknown instruction of the 'Move shifted register' format type", true);
+			}
+
+			if (offset5 > 0)
+			{
+				change_bit(cpsr, Flags::N, get_bit(r[rd], 31));
+				change_bit(cpsr, Flags::Z, r[rd] == 0);
 			}
 
 		}
@@ -129,18 +169,15 @@ void Emulator::run()
 	}
 }
 
-void Emulator::error(const std::string msg, bool special_registers_dump)
+uint16_t Emulator::get_bit_sequence(const uint16_t number, const int msb, const int lsb) const
 {
-	std::string exception_text = "ERROR: " + msg;
-	if (special_registers_dump)
-		exception_text += "\nSP: " + std::to_string(sp) + "\nLR: " + std::to_string(lr) +
-							"\nPC: " + std::to_string(pc) + "\nCPSR: " + std::to_string(cpsr);
+	if (msb >= sizeof(uint16_t) * CHAR_BIT || msb < 0)
+		error("MSB argument is out of range in get_bit_sequence()", true);
+	if (lsb >= sizeof(uint16_t) * CHAR_BIT || lsb < 0)
+		error("LSB argument is out of range in get_bit_sequence()", true);
+	if (msb < lsb)
+		error("MSB is less than LSB in get_bit_sequence()", true);
 
-	throw std::runtime_error(exception_text);
-}
-
-uint16_t Emulator::get_bit_sequence(const uint16_t number, const int msb, const int lsb)
-{
 	int n = 1;
 	for (int i = 0; i < msb - lsb; i++)
 	{
@@ -151,12 +188,26 @@ uint16_t Emulator::get_bit_sequence(const uint16_t number, const int msb, const 
 	return (number >> lsb) & n;
 }
 
-uint8_t Emulator::get_bit(const uint16_t number, const int bit)
+uint8_t Emulator::get_bit(const uint32_t number, const int bit) const
 {
+	if (bit >= sizeof(uint32_t) * CHAR_BIT || bit < 0)
+		error("Bit argument is out of range in get_bit()", true);
+
 	return (number >> bit) & 1;
 }
 
-int Emulator::get_format_type(const uint16_t instr)
+void Emulator::change_bit(uint32_t &number, const int bit, const uint8_t new_val)
+{
+	if (bit >= sizeof(uint32_t) * CHAR_BIT || bit < 0)
+		error("Bit argument is out of range in change_bit()", true);
+
+	if (new_val)
+		number |= (1 << bit);
+	else
+		number &= ~(1 << bit);
+}
+
+int Emulator::get_format_type(const uint16_t instr) const
 {
 	const size_t SIGNATURES_NUM = 19;
 	const std::pair<uint16_t, int> signatures[] = // { signature, its length }
@@ -202,4 +253,14 @@ int Emulator::get_format_type(const uint16_t instr)
 	}
 
 	return -1;
+}
+
+void Emulator::error(const std::string msg, bool special_registers_dump) const
+{
+	std::string exception_text = "ERROR: " + msg;
+	if (special_registers_dump)
+		exception_text += "\nSP: " + std::to_string(sp) + "\nLR: " + std::to_string(lr) +
+		"\nPC: " + std::to_string(pc) + "\nCPSR: " + std::to_string(cpsr);
+
+	throw std::runtime_error(exception_text);
 }
