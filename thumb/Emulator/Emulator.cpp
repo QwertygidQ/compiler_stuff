@@ -43,9 +43,73 @@ void Emulator::run()
 			break;
 		case 3:		// ALU operations
 		{
+			enum Ops
+			{
+				AND = 0b0000, EOR = 0b0001, LSL = 0b0010, LSR = 0b0011,
+				ASR = 0b0100, ADC = 0b0101, SBC = 0b0110, ROR = 0b0111,
+				TST = 0b1000, NEG = 0b1001, CMP = 0b1010, CMN = 0b1011,
+				ORR = 0b1100, MUL = 0b1101, BIC = 0b1110, MVN = 0b1111
+			};
+
 			uint16_t op = get_bit_sequence(PM[pc], 9, 6);
 			uint16_t rs = get_bit_sequence(PM[pc], 5, 3);
 			uint16_t rd = get_bit_sequence(PM[pc], 2, 0);
+
+			if (rd >= R_SIZE)
+				error("RD is out of bounds", true);
+			else if (rs >= R_SIZE)
+				error("RS is out of bounds", true);
+
+			switch (op)
+			{
+			case AND:
+				r[rd] &= r[rs];
+				break;
+			case EOR:
+				r[rd] ^= r[rs];
+				break;
+			case LSL:
+				r[rd] <<= r[rs];
+				break;
+			case LSR:
+				r[rd] >>= r[rs];
+				break;
+			case ASR:
+				r[rd] = (int32_t) r[rd] >> r[rs];
+				break;
+			case ADC:
+				r[rd] += r[rs] + get_bit(cpsr, Flags::C);
+				break;
+			case SBC:
+				r[rd] -= r[rs] + get_bit(cpsr, Flags::C);
+				break;
+			case ROR:
+				break;
+			case TST:
+				break;
+			case NEG:
+				break;
+			case CMP:
+				break;
+			case CMN:
+				break;
+			case ORR:
+				break;
+			case MUL:
+				break;
+			case BIC:
+				break;
+			case MVN:
+				break;
+			default:
+				error("Emulator bug, invalid operation in ALU operations", true);
+			}
+
+			if (op != TST && op != CMP && op != CMN)
+			{
+				change_bit(cpsr, Flags::N, get_bit(r[rd], 31));
+				change_bit(cpsr, Flags::Z, r[rd] == 0);
+			}
 		}
 			break;
 		case 4:		// Add/subtract
@@ -55,6 +119,13 @@ void Emulator::run()
 			uint16_t argument = get_bit_sequence(PM[pc], 8, 6);
 			uint16_t rs = get_bit_sequence(PM[pc], 5, 3);
 			uint16_t rd = get_bit_sequence(PM[pc], 2, 0);
+
+			if (rd >= R_SIZE)
+				error("RD is out of bounds", true);
+			else if (rs >= R_SIZE)
+				error("RS is out of bounds", true);
+			else if (!i && argument >= R_SIZE)
+				error("RN/Offset3 is out of bounds", true);
 
 			if (!op)
 			{
@@ -119,10 +190,20 @@ void Emulator::run()
 			break;
 		case 16:	// Move shifted register
 		{
+			enum Ops
+			{
+				LSL = 0b00, LSR = 0b01, ASR = 0b10
+			};
+
 			uint16_t op = get_bit_sequence(PM[pc], 12, 11);
 			uint16_t offset5 = get_bit_sequence(PM[pc], 10, 6);
 			uint16_t rs = get_bit_sequence(PM[pc], 5, 3);
 			uint16_t rd = get_bit_sequence(PM[pc], 2, 0);
+
+			if (rd >= R_SIZE)
+				error("RD is out of bounds", true);
+			else if (rs >= R_SIZE)
+				error("RS is out of bounds", true);
 
 			change_bit(cpsr, Flags::N, 0);
 			change_bit(cpsr, Flags::Z, 0);
@@ -130,19 +211,19 @@ void Emulator::run()
 
 			switch (op)
 			{
-			case 0b00:	//LSL
+			case LSL:
 				r[rd] = r[rs] << offset5;
 
 				if (offset5 > 0)
 					change_bit(cpsr, Flags::C, get_bit(r[rs], 31 - offset5 + 1));
 				break;
-			case 0b01:	//LSR
+			case LSR:
 				r[rd] = r[rs] >> offset5;
 
 				if (offset5 > 0)
 					change_bit(cpsr, Flags::C, get_bit(r[rs], offset5 - 1));
 				break;
-			case 0b10:	//ASR
+			case ASR:
 				r[rd] = (int32_t)r[rs] >> offset5;
 
 				if (offset5 > 0)
@@ -160,6 +241,54 @@ void Emulator::run()
 		}
 			break;
 		case 17:	// Move/compare/add/subtract immediate
+		{
+			enum Ops
+			{
+				MOV = 0b00, CMP = 0b01, ADD = 0b10, SUB = 0b11
+			};
+
+			uint16_t op = get_bit_sequence(PM[pc], 12, 11);
+			uint16_t rd = get_bit_sequence(PM[pc], 10, 8);
+			uint16_t offset8 = get_bit_sequence(PM[pc], 7, 0);
+
+			if (rd >= R_SIZE)
+				error("RD is out of bounds", true);
+
+			switch (op)
+			{
+			case MOV:
+				r[rd] = offset8;
+				break;
+			case CMP:
+			{
+				uint32_t tmp_result = r[rd] - offset8;
+
+				change_bit(cpsr, Flags::N, get_bit(tmp_result, 31));
+				change_bit(cpsr, Flags::Z, tmp_result == 0);
+				change_bit(cpsr, Flags::C, r[rd] < offset8);
+				change_bit(cpsr, Flags::V, r[rd] < INT32_MIN + offset8);
+				break;
+			}
+			case ADD:
+				r[rd] += offset8;
+
+				change_bit(cpsr, Flags::N, get_bit(r[rd], 31));
+				change_bit(cpsr, Flags::Z, r[rd] == 0);
+				change_bit(cpsr, Flags::C, r[rd] > UINT32_MAX - offset8);
+				change_bit(cpsr, Flags::V, r[rd] > INT32_MAX - offset8);
+				break;
+			case SUB:
+				r[rd] -= offset8;
+
+				change_bit(cpsr, Flags::N, get_bit(r[rd], 31));
+				change_bit(cpsr, Flags::Z, r[rd] == 0);
+				change_bit(cpsr, Flags::C, r[rd] < offset8);
+				change_bit(cpsr, Flags::V, r[rd] < INT32_MAX + offset8);
+				break;
+			default:
+				error("Emulator bug, invalid operation in move/cmp/add/sub immediate", true);
+			}
+		}
 			break;
 		case 18:	// Load/store with immediate offset
 			break;
