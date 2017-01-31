@@ -69,37 +69,77 @@ void Emulator::run()
 				r[rd] ^= r[rs];
 				break;
 			case LSL:
+				if (r[rs] > 0)
+					change_bit(cpsr, Flags::C, get_bit(r[rd], 31 - r[rs] + 1));
+
 				r[rd] <<= r[rs];
 				break;
 			case LSR:
+				if (r[rs] > 0)
+					change_bit(cpsr, Flags::C, get_bit(r[rd], r[rs] - 1));
+
 				r[rd] >>= r[rs];
 				break;
 			case ASR:
+				if (r[rs] > 0)
+					change_bit(cpsr, Flags::C, get_bit(r[rd], r[rs] - 1));
+
 				r[rd] = (int32_t) r[rd] >> r[rs];
 				break;
-			case ADC:
+			case ADC://
 				r[rd] += r[rs] + get_bit(cpsr, Flags::C);
 				break;
-			case SBC:
+			case SBC://
 				r[rd] -= r[rs] + get_bit(cpsr, Flags::C);
 				break;
 			case ROR:
+				if (r[rs] > 0)
+					change_bit(cpsr, Flags::C, get_bit(r[rd], r[rs] - 1));
+
+				r[rd] = ror(r[rd], r[rs]);
 				break;
 			case TST:
+			{
+				uint32_t tmp_result = r[rd] & r[rs];
+
+				change_bit(cpsr, Flags::N, get_bit(tmp_result, NEGATIVE_BIT));
+				change_bit(cpsr, Flags::Z, tmp_result == 0);
+			}
 				break;
-			case NEG:
+			case NEG://
+				r[rd] = -r[rs];
 				break;
 			case CMP:
+			{
+				uint32_t tmp_result = r[rd] - r[rs];
+
+				change_bit(cpsr, Flags::N, get_bit(tmp_result, NEGATIVE_BIT));
+				change_bit(cpsr, Flags::Z, tmp_result == 0);
+				change_bit(cpsr, Flags::C, r[rd] < r[rs]);
+				change_bit(cpsr, Flags::V, r[rd] < INT32_MIN + r[rs]);
+			}
 				break;
 			case CMN:
+			{
+				uint32_t tmp_result = r[rd] - (~r[rs]);
+
+				change_bit(cpsr, Flags::N, get_bit(tmp_result, NEGATIVE_BIT));
+				change_bit(cpsr, Flags::Z, tmp_result == 0);
+				change_bit(cpsr, Flags::C, r[rd] < r[rs]);
+				change_bit(cpsr, Flags::V, r[rd] < INT32_MIN + r[rs]);
+			}
 				break;
 			case ORR:
+				r[rd] |= r[rs];
 				break;
 			case MUL:
+				r[rd] *= r[rs];
 				break;
 			case BIC:
+				r[rd] &= ~r[rs];
 				break;
 			case MVN:
+				r[rd] = ~r[rs];
 				break;
 			default:
 				error("Emulator bug, invalid operation in ALU operations", true);
@@ -107,7 +147,7 @@ void Emulator::run()
 
 			if (op != TST && op != CMP && op != CMN)
 			{
-				change_bit(cpsr, Flags::N, get_bit(r[rd], 31));
+				change_bit(cpsr, Flags::N, get_bit(r[rd], NEGATIVE_BIT));
 				change_bit(cpsr, Flags::Z, r[rd] == 0);
 			}
 		}
@@ -162,7 +202,7 @@ void Emulator::run()
 				}
 			}
 
-			change_bit(cpsr, Flags::N, get_bit(r[rd], 31));
+			change_bit(cpsr, Flags::N, get_bit(r[rd], NEGATIVE_BIT));
 			change_bit(cpsr, Flags::Z, r[rd] == 0);
 		}
 			break;
@@ -205,10 +245,6 @@ void Emulator::run()
 			else if (rs >= R_SIZE)
 				error("RS is out of bounds", true);
 
-			change_bit(cpsr, Flags::N, 0);
-			change_bit(cpsr, Flags::Z, 0);
-			change_bit(cpsr, Flags::C, 0);
-
 			switch (op)
 			{
 			case LSL:
@@ -232,12 +268,9 @@ void Emulator::run()
 				error("Unknown instruction of the 'Move shifted register' format type", true);
 			}
 
-			if (offset5 > 0)
-			{
-				change_bit(cpsr, Flags::N, get_bit(r[rd], 31));
-				change_bit(cpsr, Flags::Z, r[rd] == 0);
-			}
 
+			change_bit(cpsr, Flags::N, get_bit(r[rd], NEGATIVE_BIT));
+			change_bit(cpsr, Flags::Z, r[rd] == 0);
 		}
 			break;
 		case 17:	// Move/compare/add/subtract immediate
@@ -258,12 +291,15 @@ void Emulator::run()
 			{
 			case MOV:
 				r[rd] = offset8;
+
+				change_bit(cpsr, Flags::N, get_bit(r[rd], NEGATIVE_BIT));
+				change_bit(cpsr, Flags::Z, r[rd] == 0);
 				break;
 			case CMP:
 			{
 				uint32_t tmp_result = r[rd] - offset8;
 
-				change_bit(cpsr, Flags::N, get_bit(tmp_result, 31));
+				change_bit(cpsr, Flags::N, get_bit(tmp_result, NEGATIVE_BIT));
 				change_bit(cpsr, Flags::Z, tmp_result == 0);
 				change_bit(cpsr, Flags::C, r[rd] < offset8);
 				change_bit(cpsr, Flags::V, r[rd] < INT32_MIN + offset8);
@@ -272,7 +308,7 @@ void Emulator::run()
 			case ADD:
 				r[rd] += offset8;
 
-				change_bit(cpsr, Flags::N, get_bit(r[rd], 31));
+				change_bit(cpsr, Flags::N, get_bit(r[rd], NEGATIVE_BIT));
 				change_bit(cpsr, Flags::Z, r[rd] == 0);
 				change_bit(cpsr, Flags::C, r[rd] > UINT32_MAX - offset8);
 				change_bit(cpsr, Flags::V, r[rd] > INT32_MAX - offset8);
@@ -280,7 +316,7 @@ void Emulator::run()
 			case SUB:
 				r[rd] -= offset8;
 
-				change_bit(cpsr, Flags::N, get_bit(r[rd], 31));
+				change_bit(cpsr, Flags::N, get_bit(r[rd], NEGATIVE_BIT));
 				change_bit(cpsr, Flags::Z, r[rd] == 0);
 				change_bit(cpsr, Flags::C, r[rd] < offset8);
 				change_bit(cpsr, Flags::V, r[rd] < INT32_MAX + offset8);
@@ -382,6 +418,16 @@ int Emulator::get_format_type(const uint16_t instr) const
 	}
 
 	return -1;
+}
+
+uint32_t Emulator::ror(const uint32_t number, const unsigned int len) const
+{
+	const unsigned int mask = CHAR_BIT * sizeof(uint32_t) - 1;
+
+	if (len > mask)
+		error("Attempted to shift a value by type width or more", true);
+
+	return (number >> len) | (number << ((-len) & mask));
 }
 
 void Emulator::error(const std::string msg, bool special_registers_dump) const
