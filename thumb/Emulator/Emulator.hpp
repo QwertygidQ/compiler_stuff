@@ -20,7 +20,7 @@ private:
 
 	uint32_t ror(const uint32_t number, const unsigned int len) const;
 
-	void error(const std::string msg, bool special_registers_dump) const;
+	void error(const std::string msg, bool register_dump) const;
 
 	enum Flags
 	{
@@ -36,6 +36,37 @@ private:
 	uint32_t r[R_SIZE] = { 0 };
 
 	uint32_t sp = 0, lr = 0, pc = 0, cpsr = 0;
+
+	void LSL_imm5(const uint16_t offset5, const uint16_t rs, const uint16_t rd);
+	void LSR_imm5(const uint16_t offset5, const uint16_t rs, const uint16_t rd);
+	void ASR_imm5(const uint16_t offset5, const uint16_t rs, const uint16_t rd);
+
+	void ADD_lo(const uint16_t rn, const uint16_t rs, const uint16_t rd);
+	void ADD_imm3(const uint16_t offset3, const uint16_t rs, const uint16_t rd);
+	void SUB_lo(const uint16_t rn, const uint16_t rs, const uint16_t rd);
+	void SUB_imm3(const uint16_t offset3, const uint16_t rs, const uint16_t rd);
+
+	void MOV_imm8(const uint16_t rd, const uint16_t offset8);
+	void CMP_imm8(const uint16_t rd, const uint16_t offset8);
+	void ADD_imm8(const uint16_t rd, const uint16_t offset8);
+	void SUB_imm8(const uint16_t rd, const uint16_t offset8);
+
+	void AND_lo(const uint16_t rs, const uint16_t rd);
+	void EOR_lo(const uint16_t rs, const uint16_t rd);
+	void LSL_lo(const uint16_t rs, const uint16_t rd);
+	void LSR_lo(const uint16_t rs, const uint16_t rd);
+	void ASR_lo(const uint16_t rs, const uint16_t rd);
+	void ADC_lo(const uint16_t rs, const uint16_t rd);
+	void SBC_lo(const uint16_t rs, const uint16_t rd);
+	void ROR_lo(const uint16_t rs, const uint16_t rd);
+	void TST_lo(const uint16_t rs, const uint16_t rd);
+	void NEG_lo(const uint16_t rs, const uint16_t rd);
+	void CMP_lo(const uint16_t rs, const uint16_t rd);
+	void CMN_lo(const uint16_t rs, const uint16_t rd);
+	void ORR_lo(const uint16_t rs, const uint16_t rd);
+	void MUL_lo(const uint16_t rs, const uint16_t rd);
+	void BIC_lo(const uint16_t rs, const uint16_t rd);
+	void MVN_lo(const uint16_t rs, const uint16_t rd);
 };
 
 #endif
