@@ -62,8 +62,8 @@ void Emulator::run()
 				{ 0b0010, &Emulator::LSL_lo },
 				{ 0b0011, &Emulator::LSR_lo },
 				{ 0b0100, &Emulator::ASR_lo },
-				{ 0b0101, &Emulator::ADC_lo },
-				{ 0b0110, &Emulator::SBC_lo },
+			//	{ 0b0101, &Emulator::ADC_lo },
+			//	{ 0b0110, &Emulator::SBC_lo },
 				{ 0b0111, &Emulator::ROR_lo },
 				{ 0b1000, &Emulator::TST_lo },
 				{ 0b1001, &Emulator::NEG_lo },
@@ -218,17 +218,6 @@ uint8_t Emulator::get_bit(const uint32_t number, const int bit) const
 	return (number >> bit) & 1;
 }
 
-void Emulator::change_bit(uint32_t &number, const int bit, const uint8_t new_val)
-{
-	if (bit >= sizeof(uint32_t) * CHAR_BIT || bit < 0)
-		error("Bit argument is out of range in change_bit()", true);
-
-	if (new_val)
-		number |= (1 << bit);
-	else
-		number &= ~(1 << bit);
-}
-
 int Emulator::get_format_type(const uint16_t instr) const
 {
 	const size_t SIGNATURES_NUM = 19;
@@ -255,7 +244,7 @@ int Emulator::get_format_type(const uint16_t instr) const
 		{ 0b011,		3 }		// #18; Load/store with immediate offset
 	};
 
-	for (int i = 0; i < SIGNATURES_NUM; i++)
+	for (size_t i = 0; i < SIGNATURES_NUM; i++)
 	{
 		if ((instr >> (15 - signatures[i].second + 1)) == signatures[i].first)
 		{
@@ -268,9 +257,9 @@ int Emulator::get_format_type(const uint16_t instr) const
 			case 0b1011:
 				if (get_bit_sequence(instr, 10, 9) != 0b10)
 					continue;
+            default:
+                return i;
 			}
-
-			return i;
 		}
 	}
 
@@ -306,10 +295,10 @@ void Emulator::LSL_imm5(const uint16_t offset5, const uint16_t rs, const uint16_
 {
 	r[rd] = r[rs] << offset5;
 
-	change_bit(cpsr, Flags::N, get_bit(r[rd], NEGATIVE_BIT));
-	change_bit(cpsr, Flags::Z, r[rd] == 0);
+	cpsr[Flags::N] = get_bit(r[rd], NEGATIVE_BIT);
+	cpsr[Flags::Z] = r[rd] == 0;
 	if (offset5 > 0)
-		change_bit(cpsr, Flags::C, get_bit(r[rs], 31 - offset5 + 1));
+		cpsr[Flags::C] = get_bit(r[rs], 31 - offset5 + 1);
 
 }
 
@@ -317,58 +306,58 @@ void Emulator::LSR_imm5(const uint16_t offset5, const uint16_t rs, const uint16_
 {
 	r[rd] = r[rs] >> offset5;
 
-	change_bit(cpsr, Flags::N, get_bit(r[rd], NEGATIVE_BIT));
-	change_bit(cpsr, Flags::Z, r[rd] == 0);
+    cpsr[Flags::N] = get_bit(r[rd], NEGATIVE_BIT);
+	cpsr[Flags::Z] = r[rd] == 0;
 	if (offset5 > 0)
-		change_bit(cpsr, Flags::C, get_bit(r[rs], offset5 - 1));
+		cpsr[Flags::C] = get_bit(r[rs], 31 - offset5 + 1);
 }
 
 void Emulator::ASR_imm5(const uint16_t offset5, const uint16_t rs, const uint16_t rd)
 {
 	r[rd] = (int32_t)r[rs] >> offset5;
 
-	change_bit(cpsr, Flags::N, get_bit(r[rd], NEGATIVE_BIT));
-	change_bit(cpsr, Flags::Z, r[rd] == 0);
+    cpsr[Flags::N] = get_bit(r[rd], NEGATIVE_BIT);
+	cpsr[Flags::Z] = r[rd] == 0;
 	if (offset5 > 0)
-		change_bit(cpsr, Flags::C, get_bit(r[rs], offset5 - 1));
+		cpsr[Flags::C] = get_bit(r[rs], 31 - offset5 + 1);
 }
 
 void Emulator::ADD_lo(const uint16_t rn, const uint16_t rs, const uint16_t rd)
 {
-	change_bit(cpsr, Flags::N, get_bit(r[rd], NEGATIVE_BIT));
-	change_bit(cpsr, Flags::Z, r[rd] == 0);
-	change_bit(cpsr, Flags::C, r[rs] > UINT32_MAX - r[rn]);
-	change_bit(cpsr, Flags::V, r[rs] > INT32_MAX - r[rn]);
+	cpsr[Flags::N] = get_bit(r[rd], NEGATIVE_BIT);
+	cpsr[Flags::Z] = r[rd] == 0;
+	cpsr[Flags::C] = r[rs] > UINT32_MAX - r[rn];
+	cpsr[Flags::V] = r[rs] > INT32_MAX - r[rn];
 
 	r[rd] = r[rs] + r[rn];
 }
 
 void Emulator::ADD_imm3(const uint16_t offset3, const uint16_t rs, const uint16_t rd)
 {
-	change_bit(cpsr, Flags::N, get_bit(r[rd], NEGATIVE_BIT));
-	change_bit(cpsr, Flags::Z, r[rd] == 0);
-	change_bit(cpsr, Flags::C, r[rs] > UINT32_MAX - offset3);
-	change_bit(cpsr, Flags::V, r[rs] > INT32_MAX - offset3);
+	cpsr[Flags::N] = get_bit(r[rd], NEGATIVE_BIT);
+	cpsr[Flags::Z] = r[rd] == 0;
+	cpsr[Flags::C] = r[rs] > UINT32_MAX - offset3;
+	cpsr[Flags::V] = r[rs] > INT32_MAX - offset3;
 
 	r[rd] = r[rs] + offset3;
 }
 
 void Emulator::SUB_lo(const uint16_t rn, const uint16_t rs, const uint16_t rd)
 {
-	change_bit(cpsr, Flags::N, get_bit(r[rd], NEGATIVE_BIT));
-	change_bit(cpsr, Flags::Z, r[rd] == 0);
-	change_bit(cpsr, Flags::C, r[rs] < r[rn]);
-	change_bit(cpsr, Flags::V, r[rs] < INT32_MIN + r[rn]);
+	cpsr[Flags::N] = get_bit(r[rd], NEGATIVE_BIT);
+	cpsr[Flags::Z] = r[rd] == 0;
+	cpsr[Flags::C] = r[rs] < r[rn];
+	cpsr[Flags::V] = r[rs] < INT32_MIN + r[rn];
 
 	r[rd] = r[rs] - r[rn];
 }
 
 void Emulator::SUB_imm3(const uint16_t offset3, const uint16_t rs, const uint16_t rd)
 {
-	change_bit(cpsr, Flags::N, get_bit(r[rd], NEGATIVE_BIT));
-	change_bit(cpsr, Flags::Z, r[rd] == 0);
-	change_bit(cpsr, Flags::C, r[rs] < offset3);
-	change_bit(cpsr, Flags::V, r[rs] < INT32_MIN + offset3);
+	cpsr[Flags::N] = get_bit(r[rd], NEGATIVE_BIT);
+	cpsr[Flags::Z] = r[rd] == 0;
+	cpsr[Flags::C] = r[rs] < offset3;
+	cpsr[Flags::V] = r[rs] < INT32_MIN + offset3;
 
 	r[rd] = r[rs] - offset3;
 }
@@ -377,183 +366,167 @@ void Emulator::MOV_imm8(const uint16_t rd, const uint16_t offset8)
 {
 	r[rd] = offset8;
 
-	change_bit(cpsr, Flags::N, get_bit(r[rd], NEGATIVE_BIT));
-	change_bit(cpsr, Flags::Z, r[rd] == 0);
+	cpsr[Flags::N] = get_bit(r[rd], NEGATIVE_BIT);
+	cpsr[Flags::Z] = r[rd] == 0;
 }
 
 void Emulator::CMP_imm8(const uint16_t rd, const uint16_t offset8)
 {
-	change_bit(cpsr, Flags::C, r[rd] < offset8);
-	change_bit(cpsr, Flags::V, r[rd] < INT32_MIN + offset8);
+	cpsr[Flags::C] = r[rd] < offset8;
+	cpsr[Flags::V] = r[rd] < INT32_MIN + offset8;
 
 	uint32_t tmp_result = r[rd] - offset8;
 
-	change_bit(cpsr, Flags::N, get_bit(tmp_result, NEGATIVE_BIT));
-	change_bit(cpsr, Flags::Z, tmp_result == 0);
+	cpsr[Flags::N] = get_bit(tmp_result, NEGATIVE_BIT);
+	cpsr[Flags::Z] = tmp_result == 0;
 }
 
 void Emulator::ADD_imm8(const uint16_t rd, const uint16_t offset8)
 {
-	change_bit(cpsr, Flags::C, r[rd] > UINT32_MAX - offset8);
-	change_bit(cpsr, Flags::V, r[rd] > INT32_MAX - offset8);
+	cpsr[Flags::C] = r[rd] > UINT32_MAX - offset8;
+	cpsr[Flags::V] = r[rd] > INT32_MAX - offset8;
 
 	r[rd] += offset8;
 
-	change_bit(cpsr, Flags::N, get_bit(r[rd], NEGATIVE_BIT));
-	change_bit(cpsr, Flags::Z, r[rd] == 0);
+	cpsr[Flags::N] = get_bit(r[rd], NEGATIVE_BIT);
+	cpsr[Flags::Z] = r[rd] == 0;
 }
 
 void Emulator::SUB_imm8(const uint16_t rd, const uint16_t offset8)
 {
-	change_bit(cpsr, Flags::C, r[rd] < offset8);
-	change_bit(cpsr, Flags::V, r[rd] < INT32_MIN + offset8);
+	cpsr[Flags::C] = r[rd] < offset8;
+	cpsr[Flags::V] = r[rd] < INT32_MIN + offset8;
 
 	r[rd] -= offset8;
 
-	change_bit(cpsr, Flags::N, get_bit(r[rd], NEGATIVE_BIT));
-	change_bit(cpsr, Flags::Z, r[rd] == 0);
+	cpsr[Flags::N] = get_bit(r[rd], NEGATIVE_BIT);
+	cpsr[Flags::Z] = r[rd] == 0;
 }
 
 void Emulator::AND_lo(const uint16_t rs, const uint16_t rd)
 {
 	r[rd] &= r[rs];
 
-	change_bit(cpsr, Flags::N, get_bit(r[rd], NEGATIVE_BIT));
-	change_bit(cpsr, Flags::Z, r[rd] == 0);
+	cpsr[Flags::N] = get_bit(r[rd], NEGATIVE_BIT);
+	cpsr[Flags::Z] = r[rd] == 0;
 }
 
 void Emulator::EOR_lo(const uint16_t rs, const uint16_t rd)
 {
 	r[rd] ^= r[rs];
 
-	change_bit(cpsr, Flags::N, get_bit(r[rd], NEGATIVE_BIT));
-	change_bit(cpsr, Flags::Z, r[rd] == 0);
+	cpsr[Flags::N] = get_bit(r[rd], NEGATIVE_BIT);
+	cpsr[Flags::Z] = r[rd] == 0;
 }
 
 void Emulator::LSL_lo(const uint16_t rs, const uint16_t rd)
 {
 	if (r[rs] > 0)
-		change_bit(cpsr, Flags::C, get_bit(r[rd], 31 - r[rs] + 1));
+		cpsr[Flags::C] = get_bit(r[rd], 31 - r[rs] + 1);
 
 	r[rd] <<= r[rs];
 
-	change_bit(cpsr, Flags::N, get_bit(r[rd], NEGATIVE_BIT));
-	change_bit(cpsr, Flags::Z, r[rd] == 0);
+	cpsr[Flags::N] = get_bit(r[rd], NEGATIVE_BIT);
+	cpsr[Flags::Z] = r[rd] == 0;
 }
 
 void Emulator::LSR_lo(const uint16_t rs, const uint16_t rd)
 {
 	if (r[rs] > 0)
-		change_bit(cpsr, Flags::C, get_bit(r[rd], r[rs] - 1));
+		cpsr[Flags::C] = get_bit(r[rd], r[rs] - 1);
 
 	r[rd] >>= r[rs];
 
-	change_bit(cpsr, Flags::N, get_bit(r[rd], NEGATIVE_BIT));
-	change_bit(cpsr, Flags::Z, r[rd] == 0);
+	cpsr[Flags::N] = get_bit(r[rd], NEGATIVE_BIT);
+	cpsr[Flags::Z] = r[rd] == 0;
 }
 
 void Emulator::ASR_lo(const uint16_t rs, const uint16_t rd)
 {
 	if (r[rs] > 0)
-		change_bit(cpsr, Flags::C, get_bit(r[rd], r[rs] - 1));
+		cpsr[Flags::C] = get_bit(r[rd], r[rs] - 1);
 
 	r[rd] = (int32_t)r[rd] >> r[rs];
 
-	change_bit(cpsr, Flags::N, get_bit(r[rd], NEGATIVE_BIT));
-	change_bit(cpsr, Flags::Z, r[rd] == 0);
-}
-
-void Emulator::ADC_lo(const uint16_t rs, const uint16_t rd) // fix
-{
-	r[rd] += r[rs] + get_bit(cpsr, Flags::C);
-
-	change_bit(cpsr, Flags::N, get_bit(r[rd], NEGATIVE_BIT));
-	change_bit(cpsr, Flags::Z, r[rd] == 0);
-}
-
-void Emulator::SBC_lo(const uint16_t rs, const uint16_t rd) // fix
-{
-	r[rd] -= r[rs] + get_bit(cpsr, Flags::C);
-
-	change_bit(cpsr, Flags::N, get_bit(r[rd], NEGATIVE_BIT));
-	change_bit(cpsr, Flags::Z, r[rd] == 0);
+	cpsr[Flags::N] = get_bit(r[rd], NEGATIVE_BIT);
+	cpsr[Flags::Z] = r[rd] == 0;
 }
 
 void Emulator::ROR_lo(const uint16_t rs, const uint16_t rd)
 {
 	if (r[rs] > 0)
-		change_bit(cpsr, Flags::C, get_bit(r[rd], r[rs] - 1));
+		cpsr[Flags::C] = get_bit(r[rd], r[rs] - 1);
 
 	r[rd] = ror(r[rd], r[rs]);
 
-	change_bit(cpsr, Flags::N, get_bit(r[rd], NEGATIVE_BIT));
-	change_bit(cpsr, Flags::Z, r[rd] == 0);
+	cpsr[Flags::N] = get_bit(r[rd], NEGATIVE_BIT);
+	cpsr[Flags::Z] = r[rd] == 0;
 }
 
 void Emulator::TST_lo(const uint16_t rs, const uint16_t rd)
 {
 	uint32_t tmp_result = r[rd] & r[rs];
 
-	change_bit(cpsr, Flags::N, get_bit(tmp_result, NEGATIVE_BIT));
-	change_bit(cpsr, Flags::Z, tmp_result == 0);
+	cpsr[Flags::N] = get_bit(tmp_result, NEGATIVE_BIT);
+	cpsr[Flags::Z] = tmp_result == 0;
 }
 
 void Emulator::NEG_lo(const uint16_t rs, const uint16_t rd) // fix
 {
 	r[rd] = -r[rs];
 
-	change_bit(cpsr, Flags::N, get_bit(r[rd], NEGATIVE_BIT));
-	change_bit(cpsr, Flags::Z, r[rd] == 0);
+	cpsr[Flags::N] = get_bit(r[rd], NEGATIVE_BIT);
+	cpsr[Flags::Z] = r[rd] == 0;
 }
 
 void Emulator::CMP_lo(const uint16_t rs, const uint16_t rd)
 {
 	uint32_t tmp_result = r[rd] - r[rs];
 
-	change_bit(cpsr, Flags::N, get_bit(tmp_result, NEGATIVE_BIT));
-	change_bit(cpsr, Flags::Z, tmp_result == 0);
-	change_bit(cpsr, Flags::C, r[rd] < r[rs]);
-	change_bit(cpsr, Flags::V, r[rd] < INT32_MIN + r[rs]);
+	cpsr[Flags::N] = get_bit(tmp_result, NEGATIVE_BIT);
+	cpsr[Flags::Z] = tmp_result == 0;
+	cpsr[Flags::C] = r[rd] < r[rs];
+	cpsr[Flags::V] = r[rd] < INT32_MIN + r[rs];
 }
 
 void Emulator::CMN_lo(const uint16_t rs, const uint16_t rd)
 {
 	uint32_t tmp_result = r[rd] - (~r[rs]);
 
-	change_bit(cpsr, Flags::N, get_bit(tmp_result, NEGATIVE_BIT));
-	change_bit(cpsr, Flags::Z, tmp_result == 0);
-	change_bit(cpsr, Flags::C, r[rd] < r[rs]);
-	change_bit(cpsr, Flags::V, r[rd] < INT32_MIN + r[rs]);
+	cpsr[Flags::N] = get_bit(tmp_result, NEGATIVE_BIT);
+	cpsr[Flags::Z] = tmp_result == 0;
+	cpsr[Flags::C] = r[rd] < r[rs];
+	cpsr[Flags::V] = r[rd] < INT32_MIN + r[rs];
 }
 
 void Emulator::ORR_lo(const uint16_t rs, const uint16_t rd)
 {
 	r[rd] |= r[rs];
 
-	change_bit(cpsr, Flags::N, get_bit(r[rd], NEGATIVE_BIT));
-	change_bit(cpsr, Flags::Z, r[rd] == 0);
+	cpsr[Flags::N] = get_bit(r[rd], NEGATIVE_BIT);
+	cpsr[Flags::Z] = r[rd] == 0;
 }
 
 void Emulator::MUL_lo(const uint16_t rs, const uint16_t rd)
 {
 	r[rd] *= r[rs];
 
-	change_bit(cpsr, Flags::N, get_bit(r[rd], NEGATIVE_BIT));
-	change_bit(cpsr, Flags::Z, r[rd] == 0);
+	cpsr[Flags::N] = get_bit(r[rd], NEGATIVE_BIT);
+	cpsr[Flags::Z] = r[rd] == 0;
 }
 
 void Emulator::BIC_lo(const uint16_t rs, const uint16_t rd)
 {
 	r[rd] &= ~r[rs];
 
-	change_bit(cpsr, Flags::N, get_bit(r[rd], NEGATIVE_BIT));
-	change_bit(cpsr, Flags::Z, r[rd] == 0);
+	cpsr[Flags::N] = get_bit(r[rd], NEGATIVE_BIT);
+	cpsr[Flags::Z] = r[rd] == 0;
 }
 
 void Emulator::MVN_lo(const uint16_t rs, const uint16_t rd)
 {
 	r[rd] = ~r[rs];
 
-	change_bit(cpsr, Flags::N, get_bit(r[rd], NEGATIVE_BIT));
-	change_bit(cpsr, Flags::Z, r[rd] == 0);
+	cpsr[Flags::N] = get_bit(r[rd], NEGATIVE_BIT);
+	cpsr[Flags::Z] = r[rd] == 0;
 }

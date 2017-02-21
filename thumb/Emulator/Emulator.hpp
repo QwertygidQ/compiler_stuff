@@ -15,17 +15,11 @@ public:
 private:
 	uint16_t get_bit_sequence(const uint16_t number, const int msb, const int lsb) const;
 	uint8_t get_bit(const uint32_t number, const int bit) const;
-	void change_bit(uint32_t &number, const int bit, const uint8_t new_val);
 	int get_format_type(const uint16_t instr) const;
 
 	uint32_t ror(const uint32_t number, const unsigned int len) const;
 
 	void error(const std::string msg, bool register_dump) const;
-
-	enum Flags
-	{
-		N = 31, Z = 30, C = 29, V = 28
-	};
 
 	const int NEGATIVE_BIT = 31;
 
@@ -35,7 +29,15 @@ private:
 	static const size_t R_SIZE = 8; //R0 - R7
 	uint32_t r[R_SIZE] = { 0 };
 
-	uint32_t sp = 0, lr = 0, pc = 0, cpsr = 0;
+	uint32_t &sp = r[5], &lr = r[6], &pc = r[7];
+
+    enum Flags
+	{
+		N = 31, Z = 30, C = 29, V = 28
+	};
+
+	static const size_t CPSR_SIZE = 4;
+	uint8_t cpsr[CPSR_SIZE];
 
 	void LSL_imm5(const uint16_t offset5, const uint16_t rs, const uint16_t rd);
 	void LSR_imm5(const uint16_t offset5, const uint16_t rs, const uint16_t rd);
@@ -56,8 +58,6 @@ private:
 	void LSL_lo(const uint16_t rs, const uint16_t rd);
 	void LSR_lo(const uint16_t rs, const uint16_t rd);
 	void ASR_lo(const uint16_t rs, const uint16_t rd);
-	void ADC_lo(const uint16_t rs, const uint16_t rd);
-	void SBC_lo(const uint16_t rs, const uint16_t rd);
 	void ROR_lo(const uint16_t rs, const uint16_t rd);
 	void TST_lo(const uint16_t rs, const uint16_t rd);
 	void NEG_lo(const uint16_t rs, const uint16_t rd);
