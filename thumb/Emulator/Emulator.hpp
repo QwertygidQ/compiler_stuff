@@ -13,7 +13,7 @@ public:
 	void run();
 
 private:
-	uint16_t get_bit_sequence(const uint16_t number, const int msb, const int lsb) const;
+	uint16_t get_bit_sequence(const uint16_t number, const size_t msb, const size_t lsb) const;
 	uint8_t get_bit(const uint32_t number, const int bit) const;
 	int get_format_type(const uint16_t instr) const;
 

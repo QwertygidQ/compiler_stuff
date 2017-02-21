@@ -191,17 +191,17 @@ void Emulator::run()
 	}
 }
 
-uint16_t Emulator::get_bit_sequence(const uint16_t number, const int msb, const int lsb) const
+uint16_t Emulator::get_bit_sequence(const uint16_t number, const size_t msb, const size_t lsb) const
 {
-	if (msb >= sizeof(uint16_t) * CHAR_BIT || msb < 0)
+	if (msb >= sizeof(uint16_t) * CHAR_BIT)
 		error("MSB argument is out of range in get_bit_sequence()", true);
-	if (lsb >= sizeof(uint16_t) * CHAR_BIT || lsb < 0)
+	if (lsb >= sizeof(uint16_t) * CHAR_BIT)
 		error("LSB argument is out of range in get_bit_sequence()", true);
 	if (msb < lsb)
 		error("MSB is less than LSB in get_bit_sequence()", true);
 
-	int n = 1;
-	for (int i = 0; i < msb - lsb; i++)
+	uint16_t n = 1;
+	for (size_t i = 0; i < msb - lsb; i++)
 	{
 		n <<= 1;
 		n++;
@@ -314,7 +314,7 @@ void Emulator::LSR_imm5(const uint16_t offset5, const uint16_t rs, const uint16_
 
 void Emulator::ASR_imm5(const uint16_t offset5, const uint16_t rs, const uint16_t rd)
 {
-	r[rd] = (int32_t)r[rs] >> offset5;
+	r[rd] = static_cast<int32_t>(r[rs]) >> offset5;
 
     cpsr[Flags::N] = get_bit(r[rd], NEGATIVE_BIT);
 	cpsr[Flags::Z] = r[rd] == 0;
@@ -446,7 +446,7 @@ void Emulator::ASR_lo(const uint16_t rs, const uint16_t rd)
 	if (r[rs] > 0)
 		cpsr[Flags::C] = get_bit(r[rd], r[rs] - 1);
 
-	r[rd] = (int32_t)r[rd] >> r[rs];
+	r[rd] = static_cast<int32_t>(r[rd]) >> r[rs];
 
 	cpsr[Flags::N] = get_bit(r[rd], NEGATIVE_BIT);
 	cpsr[Flags::Z] = r[rd] == 0;
