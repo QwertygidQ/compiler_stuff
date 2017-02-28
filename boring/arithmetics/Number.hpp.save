@@ -1,0 +1,25 @@
+#ifndef NUMBER_HPP
+#define NUMBER_HPP
+
+#include <string>
+
+class Number
+{
+public:
+    Number();
+    Number(const std::string num);
+
+    void operator+=(const std::string &num);
+private:
+    bool is_valid_num(std::string num);
+
+    void make_equal_length(std::string &num);
+
+    std::string add(const std::string num);
+    std::string minus(const std::string num);
+
+    std::string number;
+    bool 
+};
+
+#endif
